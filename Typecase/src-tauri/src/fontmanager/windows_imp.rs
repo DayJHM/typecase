@@ -8,9 +8,6 @@
 
 use super::{hive_root, FontManager, InstallEntry, InstallRecord};
 use crate::library::model::Scope;
-use std::ffi::OsStr;
-use std::fs;
-use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
 
 const REG_FONTS_KEY: &str = r"Software\Microsoft\Windows NT\CurrentVersion\Fonts";
@@ -40,8 +37,8 @@ pub(crate) fn fonts_dir(scope: Scope) -> PathBuf {
 fn open_fonts_key(scope: Scope, write: bool) -> Result<windows::Win32::System::Registry::HKEY, String> {
     use windows::Win32::System::Registry::*;
     use windows::core::PCWSTR;
-    let wide: Vec<u16> = REG_FONTS_KEY
-        .encode_wide()
+    let wide_key: Vec<u16> = REG_FONTS_KEY
+        .encode_utf16()
         .chain(std::iter::once(0))
         .collect();
     let mut key = HKEY::default();
@@ -54,7 +51,7 @@ fn open_fonts_key(scope: Scope, write: bool) -> Result<windows::Win32::System::R
     // SAFETY: root is a valid hive handle; `wide` is a NUL-terminated UTF-16
     // literal path owned for the duration of the (synchronous) call.
     let status = unsafe {
-        RegOpenKeyExW(root, PCWSTR(wide.as_ptr()), 0, access, &mut key)
+        RegOpenKeyExW(root, PCWSTR(wide_key.as_ptr()), 0, access, &mut key)
     };
     if status.is_ok() {
         Ok(key)
@@ -71,8 +68,8 @@ fn set_value(scope: Scope, value_name: &str, data: &str) -> Result<(), String> {
     use windows::Win32::System::Registry::*;
     use windows::core::PCWSTR;
     let key = open_fonts_key(scope, true)?;
-    let name: Vec<u16> = value_name.encode_wide().chain(std::iter::once(0)).collect();
-    let data: Vec<u16> = data.encode_wide().chain(std::iter::once(0)).collect();
+    let name: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
+    let data: Vec<u16> = data.encode_utf16().chain(std::iter::once(0)).collect();
     // UTF-16 bytes little-endian, as REG_SZ expects.
     let bytes: Vec<u8> = data
         .as_bytes()
@@ -97,7 +94,7 @@ fn delete_value(scope: Scope, value_name: &str) -> Result<(), String> {
     use windows::Win32::System::Registry::*;
     use windows::core::PCWSTR;
     let key = open_fonts_key(scope, true)?;
-    let name: Vec<u16> = value_name.encode_wide().chain(std::iter::once(0)).collect();
+    let name: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
     // SAFETY: `name` is a valid NUL-terminated UTF-16 buffer for the call.
     let status = unsafe { RegDeleteValueW(key, PCWSTR(name.as_ptr())) };
     let _ = unsafe { RegCloseKey(key) };
@@ -116,7 +113,7 @@ fn value_exists(scope: Scope, value_name: &str) -> bool {
     let Ok(key) = open_fonts_key(scope, false) else {
         return false;
     };
-    let name: Vec<u16> = value_name.encode_wide().chain(std::iter::once(0)).collect();
+    let name: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
     // SAFETY: `name` is a valid NUL-terminated UTF-16 buffer for the call.
     let status = unsafe { RegQueryValueExW(key, PCWSTR(name.as_ptr()), None, None, None, None) };
     let _ = unsafe { RegCloseKey(key) };
@@ -147,12 +144,13 @@ fn broadcast_font_change() {
     use windows::Win32::Foundation::{WPARAM, LPARAM};
     const WM_FONTCHANGE: u32 = 0x001D;
     // SAFETY: HWND_BROADCAST with no buffer; the timeout bounds hung windows.
+    // WPARAM/LPARAM are passed directly (Param impls), not wrapped in Option.
     unsafe {
         let _ = SendMessageTimeoutW(
             HWND_BROADCAST,
             WM_FONTCHANGE,
-            Some(WPARAM(0)),
-            Some(LPARAM(0)),
+            WPARAM(0),
+            LPARAM(0),
             SMTO_ABORTIFHUNG,
             1000,
             None,
@@ -160,7 +158,27 @@ fn broadcast_font_change() {
     }
 }
 
-pub struct WindowsFontManager;
+fn wide(s: &str) -> Vec<u16> {
+    // std str method — no OsStrExt import needed
+    s.encode_utf16().chain(std::iter::once(0)).collect()
+}
+
+/// Install/uninstall entry points that respect scope: user operations run
+/// in-process; system operations re-exec Typecase itself elevated for exactly
+/// that one operation (§23 — the interactive app never runs elevated).
+pub fn install_scoped(record: &InstallRecord) -> Result<(), String> {
+    match record.scope {
+        Scope::User => WindowsFontManager.install(record),
+        Scope::System => spawn_elevated(ELEVATE_INSTALL_ARG, record),
+    }
+}
+
+pub fn uninstall_scoped(record: &InstallRecord) -> Result<(), String> {
+    match record.scope {
+        Scope::User => WindowsFontManager.uninstall(record),
+        Scope::System => spawn_elevated(ELEVATE_UNINSTALL_ARG, record),
+    }
+}
 
 /* ---- scoped elevation (M6_FONTMANAGER_DESIGN §1) ----
 
@@ -197,10 +215,6 @@ pub fn run_elevated_from_args() -> Option<i32> {
             1
         }
     })
-}
-
-fn wide(s: &str) -> Vec<u16> {
-    OsStr::new(s).encode_wide().chain(std::iter::once(0)).collect()
 }
 
 fn spawn_elevated(mode: &str, record: &InstallRecord) -> Result<(), String> {
