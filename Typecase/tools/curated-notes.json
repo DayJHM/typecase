@@ -1,0 +1,520 @@
+[
+  {
+    "family": "Inter",
+    "designer": "Rasmus Andersson",
+    "year": 2016,
+    "note": "Neutral workhorse with tall x-height; tabular figures by default.",
+    "pairsWith": "Newsreader"
+  },
+  {
+    "family": "Bodoni Moda",
+    "designer": "Owen Earl / indestructible type",
+    "year": 2020,
+    "note": "Didone with hairline serifs — poster sizes only, never below 16 px.",
+    "pairsWith": "IBM Plex Mono"
+  },
+  {
+    "family": "Fraunces",
+    "designer": "Undercase Type",
+    "year": 2020,
+    "note": "Wonky old-style with SOFT and WONK axes; warm at display size.",
+    "pairsWith": "Work Sans"
+  },
+  {
+    "family": "Newsreader",
+    "designer": "Production Type",
+    "year": 2020,
+    "note": "Screen-first text serif; optical sizes from caption to headline.",
+    "pairsWith": "Public Sans"
+  },
+  {
+    "family": "Literata",
+    "designer": "TypeTogether",
+    "year": 2015,
+    "note": "Built for long-form reading on screen — the ebook default.",
+    "pairsWith": "Alegreya Sans"
+  },
+  {
+    "family": "EB Garamond",
+    "designer": "Georg Duffner / Octavio Pardo",
+    "year": 2011,
+    "note": "Garalde revival; tight colour and old-style figures for essays.",
+    "pairsWith": "Inter"
+  },
+  {
+    "family": "Cormorant Garamond",
+    "designer": "Christian Thalmann",
+    "year": 2015,
+    "note": "Delicate, high-contrast Garalde. Beautiful at 24 pt+, fragile at 10 pt.",
+    "pairsWith": "Karla"
+  },
+  {
+    "family": "Libre Baskerville",
+    "designer": "Impallari Type",
+    "year": 2012,
+    "note": "Widened and darkened for body text on the web. Very safe.",
+    "pairsWith": "Source Sans 3"
+  },
+  {
+    "family": "Playfair Display",
+    "designer": "Claus Eggers Sørensen",
+    "year": 2011,
+    "note": "Transitional didone for editorial headlines and decks.",
+    "pairsWith": "Source Sans 3"
+  },
+  {
+    "family": "Spectral",
+    "designer": "Production Type",
+    "year": 2017,
+    "note": "Screen-optimised text serif with a wide range of weights.",
+    "pairsWith": "Karla"
+  },
+  {
+    "family": "Source Serif 4",
+    "designer": "Frank Grießhammer / Adobe",
+    "year": 2012,
+    "note": "Companion to Source Sans and Source Code — a full document system.",
+    "pairsWith": "Source Sans 3"
+  },
+  {
+    "family": "Merriweather",
+    "designer": "Sorkin Type",
+    "year": 2010,
+    "note": "Heavy serifs, large x-height — survives bad screens and small sizes.",
+    "pairsWith": "Open Sans"
+  },
+  {
+    "family": "Lora",
+    "designer": "Cyreal",
+    "year": 2011,
+    "note": "Calligraphic brushwork under a calm body; good for blog text.",
+    "pairsWith": "Muli"
+  },
+  {
+    "family": "PT Serif",
+    "designer": "ParaType",
+    "year": 2010,
+    "note": "Public Type project — pan-Cyrillic, made for state documents.",
+    "pairsWith": "PT Sans"
+  },
+  {
+    "family": "Crimson Text",
+    "designer": "Sebastian Kosch",
+    "year": 2011,
+    "note": "Jan Tschichold's Penguin legacy in a small book face.",
+    "pairsWith": "Gill Sans alternative"
+  },
+  {
+    "family": "Vollkorn",
+    "designer": "Friedrich Althausen",
+    "year": 2009,
+    "note": "Dark, hearty bread-and-butter text face.",
+    "pairsWith": "Karla"
+  },
+  {
+    "family": "Alegreya",
+    "designer": "Huerta Tipográfica",
+    "year": 2011,
+    "note": "Dynamic, calligraphic rhythm; designed for literature.",
+    "pairsWith": "Alegreya Sans"
+  },
+  {
+    "family": "Bitter",
+    "designer": "Huerta Tipográfica",
+    "year": 2011,
+    "note": "Slab serif engineered for LCD body text.",
+    "pairsWith": "Open Sans"
+  },
+  {
+    "family": "Old Standard TT",
+    "designer": "Alexey Kryukov",
+    "year": 2009,
+    "note": "Late-19th-century book look; scholarly footnotes and citations.",
+    "pairsWith": "Roboto Condensed"
+  },
+  {
+    "family": "Cardo",
+    "designer": "David J. Perry",
+    "year": 2002,
+    "note": "Scholarly face with Greek, Hebrew and broad Unicode coverage.",
+    "pairsWith": "Inter"
+  },
+  {
+    "family": "Cinzel",
+    "designer": "Natanael Gama",
+    "year": 2012,
+    "note": "Roman inscriptional capitals. Titles and certificates only.",
+    "pairsWith": "EB Garamond"
+  },
+  {
+    "family": "Marcellus",
+    "designer": "Astigmatic",
+    "year": 2011,
+    "note": "Refined Trajan-like capitals with a single weight.",
+    "pairsWith": "Cardo"
+  },
+  {
+    "family": "Abril Fatface",
+    "designer": "TypeTogether",
+    "year": 2011,
+    "note": "Fat didone for magazine covers and one-word headlines.",
+    "pairsWith": "Lato"
+  },
+  {
+    "family": "Instrument Serif",
+    "designer": "Instrument",
+    "year": 2023,
+    "note": "Modern high-contrast display serif. Tight, tall, fashionable.",
+    "pairsWith": "Instrument Sans"
+  },
+  {
+    "family": "Libre Caslon Display",
+    "designer": "Impallari Type",
+    "year": 2018,
+    "note": "Caslon cut for the masthead size of a broadsheet.",
+    "pairsWith": "Libre Franklin"
+  },
+  {
+    "family": "Archivo",
+    "designer": "Omnibus-Type",
+    "year": 2012,
+    "note": "Roboto-ish grotesque built for high-performance print and UI.",
+    "pairsWith": "Bodoni Moda"
+  },
+  {
+    "family": "Work Sans",
+    "designer": "Wei Huang",
+    "year": 2015,
+    "note": "Optimised for body text on screen at 14 px and above.",
+    "pairsWith": "Fraunces"
+  },
+  {
+    "family": "Space Grotesk",
+    "designer": "Florian Karsten",
+    "year": 2018,
+    "note": "Proportionally-spaced grotesque with quirky terminals.",
+    "pairsWith": "Space Mono"
+  },
+  {
+    "family": "DM Sans",
+    "designer": "Colophon Foundry",
+    "year": 2019,
+    "note": "Low-contrast geometric, tuned for small UI copy.",
+    "pairsWith": "DM Serif Display"
+  },
+  {
+    "family": "DM Serif Display",
+    "designer": "Colophon Foundry",
+    "year": 2019,
+    "note": "Elegant didone display; pairs instantly with DM Sans.",
+    "pairsWith": "DM Sans"
+  },
+  {
+    "family": "IBM Plex Sans",
+    "designer": "Mike Abbink / Bold Monday",
+    "year": 2017,
+    "note": "Engineered grotesque with a matching serif and mono — a whole system.",
+    "pairsWith": "IBM Plex Serif"
+  },
+  {
+    "family": "IBM Plex Serif",
+    "designer": "Mike Abbink / Bold Monday",
+    "year": 2017,
+    "note": "Slab-ish transitional for technical documentation.",
+    "pairsWith": "IBM Plex Sans"
+  },
+  {
+    "family": "IBM Plex Mono",
+    "designer": "Mike Abbink / Bold Monday",
+    "year": 2017,
+    "note": "Fixed-pitch with unambiguous 1/l/I — labels and code.",
+    "pairsWith": "IBM Plex Sans"
+  },
+  {
+    "family": "JetBrains Mono",
+    "designer": "Philipp Nurullin / JetBrains",
+    "year": 2020,
+    "note": "Tall x-height in code; increased letterform distinctions.",
+    "pairsWith": "Inter"
+  },
+  {
+    "family": "Roboto Mono",
+    "designer": "Christian Robertson",
+    "year": 2015,
+    "note": "Dual-pitch grotesque mono; safe in every editor.",
+    "pairsWith": "Roboto"
+  },
+  {
+    "family": "Source Code Pro",
+    "designer": "Paul D. Hunt / Adobe",
+    "year": 2012,
+    "note": "The code half of the Source superfamily.",
+    "pairsWith": "Source Serif 4"
+  },
+  {
+    "family": "Space Mono",
+    "designer": "Colophon Foundry",
+    "year": 2016,
+    "note": "1960s-ish fixed pitch with eccentric curves. Labels and captions.",
+    "pairsWith": "Space Grotesk"
+  },
+  {
+    "family": "Inconsolata",
+    "designer": "Raph Levien",
+    "year": 2006,
+    "note": "Humanist mono — narrow, gentle, good for long listings.",
+    "pairsWith": "Lora"
+  },
+  {
+    "family": "Courier Prime",
+    "designer": "Quote-Unquote Apps",
+    "year": 2013,
+    "note": "Cut of Courier for screenplays. Use it for scripts.",
+    "pairsWith": "Libre Baskerville"
+  },
+  {
+    "family": "Anonymous Pro",
+    "designer": "Mark Simonson",
+    "year": 2009,
+    "note": "Fixed pitch designed for the terminal and for coding in bed.",
+    "pairsWith": "Cardo"
+  },
+  {
+    "family": "Fira Sans",
+    "designer": "Erik Spiekermann / Carrois",
+    "year": 2011,
+    "note": "Firefox's humanist sans; excellent at 12–14 px in dense UI.",
+    "pairsWith": "Fira Code"
+  },
+  {
+    "family": "Karla",
+    "designer": "Jonny Pinhorn",
+    "year": 2012,
+    "note": "Grotesque with odd, spiky details. Good next to a serif.",
+    "pairsWith": "Spectral"
+  },
+  {
+    "family": "Manrope",
+    "designer": "Mikhail Sharanda",
+    "year": 2018,
+    "note": "Semi-geometric with open apertures; product UI and decks.",
+    "pairsWith": "Lora"
+  },
+  {
+    "family": "Plus Jakarta Sans",
+    "designer": "Tokotype",
+    "year": 2020,
+    "note": "Crisp grotesque with tight spacing; strong in dashboards.",
+    "pairsWith": "Source Serif 4"
+  },
+  {
+    "family": "Public Sans",
+    "designer": "US Web Design System",
+    "year": 2019,
+    "note": "Neutral, accessible, civic — the US government's house face.",
+    "pairsWith": "Merriweather"
+  },
+  {
+    "family": "Atkinson Hyperlegible",
+    "designer": "Braille Institute / Applied Design",
+    "year": 2020,
+    "note": "Letters disambiguated for low vision. The accessibility pick.",
+    "pairsWith": "Literata"
+  },
+  {
+    "family": "Red Hat Display",
+    "designer": "MCKL",
+    "year": 2019,
+    "note": "Rounded geometric for headlines; Red Hat Text for body.",
+    "pairsWith": "Red Hat Text"
+  },
+  {
+    "family": "Barlow",
+    "designer": "Jeremy Tribby",
+    "year": 2017,
+    "note": "Slightly rounded grotesk with widths and italics — 27 styles.",
+    "pairsWith": "Bitter"
+  },
+  {
+    "family": "Asap",
+    "designer": "Omnibus-Type",
+    "year": 2011,
+    "note": "Condensed-friendly grotesque that saves line length.",
+    "pairsWith": "Asap Condensed"
+  },
+  {
+    "family": "Chivo",
+    "designer": "Omnibus-Type",
+    "year": 2011,
+    "note": "Grotesque with real grit at heavy weights.",
+    "pairsWith": "Bodoni Moda"
+  },
+  {
+    "family": "Epilogue",
+    "designer": "Tyler Finck / Etcetera Type Co",
+    "year": 2019,
+    "note": "Geometric with a wide range; loud at Black.",
+    "pairsWith": "Fraunces"
+  },
+  {
+    "family": "Bricolage Grotesque",
+    "designer": "Mathieu Triay",
+    "year": 2022,
+    "note": "Variable width and optical size — characterful UI and posters.",
+    "pairsWith": "Newsreader"
+  },
+  {
+    "family": "Wix Madefor Display",
+    "designer": "Emi Takahashi / Wix",
+    "year": 2023,
+    "note": "Built for hero headlines with a matching text cut.",
+    "pairsWith": "Wix Madefor Text"
+  },
+  {
+    "family": "Instrument Sans",
+    "designer": "Instrument",
+    "year": 2023,
+    "note": "Neutral grotesque cut to sit under Instrument Serif.",
+    "pairsWith": "Instrument Serif"
+  },
+  {
+    "family": "Noto Serif",
+    "designer": "Google / Monotype",
+    "year": 2013,
+    "note": "The no-tofu family: 800+ scripts, 100+ writing systems.",
+    "pairsWith": "Noto Sans"
+  },
+  {
+    "family": "Noto Sans",
+    "designer": "Google / Monotype",
+    "year": 2013,
+    "note": "When the copy mixes Latin, Greek, Cyrillic and Devanagari.",
+    "pairsWith": "Noto Serif"
+  },
+  {
+    "family": "Oswald",
+    "designer": "Vernon Adams",
+    "year": 2011,
+    "note": "Condensed gothic for headline decks and posters.",
+    "pairsWith": "Lora"
+  },
+  {
+    "family": "Bebas Neue",
+    "designer": "Ryoichi Tsunekawa / Dharma Type",
+    "year": 2010,
+    "note": "All-caps condensed. Set it huge or don't set it.",
+    "pairsWith": "Inter"
+  },
+  {
+    "family": "Anton",
+    "designer": "Vernon Adams",
+    "year": 2011,
+    "note": "One heavy weight of condensed sans. Maximum impact.",
+    "pairsWith": "Roboto"
+  },
+  {
+    "family": "Poppins",
+    "designer": "Indian Type Foundry",
+    "year": 2014,
+    "note": "Perfect-circle geometric with Devanagari. Friendly product UI.",
+    "pairsWith": "Playfair Display"
+  },
+  {
+    "family": "Rubik",
+    "designer": "Hubert & Fischer / Meir Sadan",
+    "year": 2015,
+    "note": "Rounded corners, slightly condensed — good in chips and buttons.",
+    "pairsWith": "Roboto Slab"
+  },
+  {
+    "family": "Lato",
+    "designer": "Łukasz Dziedzic",
+    "year": 2010,
+    "note": "Semi-rounded humanist; the corporate-brochure default since 2010.",
+    "pairsWith": "Merriweather"
+  },
+  {
+    "family": "Open Sans",
+    "designer": "Steve Matteson",
+    "year": 2011,
+    "note": "Optimised for print, web and mobile interfaces. Utterly neutral.",
+    "pairsWith": "Source Serif 4"
+  },
+  {
+    "family": "Montserrat",
+    "designer": "Julieta Ulanovsky",
+    "year": 2011,
+    "note": "Urban typography of Buenos Aires; strong at ExtraBold.",
+    "pairsWith": "Playfair Display"
+  },
+  {
+    "family": "Roboto",
+    "designer": "Christian Robertson",
+    "year": 2011,
+    "note": "Android's house grotesque. Mechanical, legible, everywhere.",
+    "pairsWith": "Roboto Slab"
+  },
+  {
+    "family": "Ubuntu",
+    "designer": "Dalton Maag",
+    "year": 2010,
+    "note": "Distinctive loopless humanist; a whole OS in one family.",
+    "pairsWith": "Ubuntu Mono"
+  },
+  {
+    "family": "Josefin Sans",
+    "designer": "Santiago Orozco",
+    "year": 2010,
+    "note": "1920s geometric with a very high waist. Elegant in caps.",
+    "pairsWith": "Josefin Slab"
+  },
+  {
+    "family": "Raleway",
+    "designer": "Matt McInerney / Impallari Type",
+    "year": 2010,
+    "note": "Elegant thin-to-black grotesque with a swashy w.",
+    "pairsWith": "Lora"
+  },
+  {
+    "family": "Lobster",
+    "designer": "Impallari Type",
+    "year": 2010,
+    "note": "The bold script that defined 2011. Signage and packaging only.",
+    "pairsWith": "Inter"
+  },
+  {
+    "family": "Pacifico",
+    "designer": "Vernon Adams",
+    "year": 2011,
+    "note": "Brush script from surf culture. Logotypes, never body copy.",
+    "pairsWith": "Karla"
+  },
+  {
+    "family": "Caveat",
+    "designer": "Impallari Type",
+    "year": 2015,
+    "note": "Casual handwriting for annotations and margin notes.",
+    "pairsWith": "Inter"
+  },
+  {
+    "family": "Shadows Into Light",
+    "designer": "Kimberly Geswein",
+    "year": 2011,
+    "note": "Pencil-like schoolbook hand. Worksheets and captions.",
+    "pairsWith": "Nunito"
+  },
+  {
+    "family": "Permanent Marker",
+    "designer": "Font Diner",
+    "year": 2010,
+    "note": "Marker pen. Posters, stickers, one word at a time.",
+    "pairsWith": "Karla"
+  },
+  {
+    "family": "Rock Salt",
+    "designer": "Nootype",
+    "year": 2010,
+    "note": "Nervous handwriting with wide spacing. Notes and titles.",
+    "pairsWith": "Work Sans"
+  }
+]

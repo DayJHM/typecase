@@ -1,0 +1,38 @@
+[package]
+name = "typecase"
+version = "0.1.0"
+description = "Typecase — a local-first Windows font discovery, specimen, caching, installation and management utility"
+authors = ["Typecase"]
+edition = "2021"
+
+# Match the @tauri-apps/cli version from package.json.
+[build-dependencies]
+tauri-build = { version = "2.5", features = [] }
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tauri = { version = "2.9", features = [] }
+# M4 download pipeline: keyless CSS2 fetch (rustls: no system-openssl build
+# dependency), streamed sha256 for content identity (§18), RFC3339 stamps.
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "rustls-tls"] }
+sha2 = "0.10"
+hex = "0.4"
+humantime = "2"
+
+# M6 Windows font APIs (per-user fonts, registry, WM_FONTCHANGE) — compiled
+# only on Windows targets; other platforms use the unsupported manager.
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_UI_Shell",
+  "Win32_System_Registry",
+  "Win32_System_Threading",
+  "Win32_System_LibraryLoader",
+] }
+
+[lib]
+name = "typecase_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]

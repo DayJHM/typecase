@@ -1,0 +1,233 @@
+@import "tailwindcss";
+
+/* --- bundled UI chrome fonts: the app must launch offline-first --- */
+@font-face {
+  font-family: "Bodoni Moda";
+  src: url("/fonts/BodoniModa-var.ttf") format("truetype-variations");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBMPlexSans-var.ttf") format("truetype-variations");
+  font-weight: 100 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/IBMPlexMono-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --paper: #f2ede4;
+  --paper-2: #e9e2d5;
+  --ink: #14110e;
+  /* the warm neutral is darkened so 10.5px mono labels clear 4.5:1 on paper */
+  --warm: #6b6155;
+  --rule: #d8d0c2;
+  --verm: #c8341e;
+}
+
+/* foundry at night: warm near-black paper, lifted ink, brightened vermilion
+   so accents and labels keep their contrast ratios */
+html.dark {
+  --paper: #16130f;
+  --paper-2: #1d1915;
+  --ink: #ece5d8;
+  --warm: #a39785;
+  --rule: #35302a;
+  --verm: #e0492f;
+}
+
+/* Tailwind theme tokens bound to the runtime variables: bg-paper, text-ink,
+   border-rule, text-verm … flip automatically when the variables do. */
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper2: var(--paper-2);
+  --color-ink: var(--ink);
+  --color-warm: var(--warm);
+  --color-rule: var(--rule);
+  --color-verm: var(--verm);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+/* --- foundry paper: procedural grain + fibre, no image weight --- */
+.grain::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.22'/%3E%3C/svg%3E");
+}
+
+/* on dark paper multiply disappears — screen lifts instead, fainter */
+html.dark .grain::after {
+  mix-blend-mode: screen;
+  opacity: 0.16;
+}
+
+.disp {
+  font-family: "Bodoni Moda", "Bodoni MT", Didot, "Times New Roman", serif;
+}
+
+.lab {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+
+.num {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+.hair {
+  border-color: var(--rule);
+}
+
+::selection {
+  background: var(--verm);
+  color: var(--paper);
+}
+
+[contenteditable] {
+  outline: none;
+}
+[contenteditable]:focus-visible {
+  box-shadow: -14px 0 0 -12px var(--verm);
+}
+[contenteditable]:empty::before {
+  content: attr(data-ph);
+  color: var(--warm);
+  opacity: 0.55;
+}
+
+/* --- type setting: the webfont landing resolves blur -> sharp --- */
+@keyframes setline {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: none;
+  }
+}
+.setline {
+  animation: setline 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes slipin {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.slipin {
+  animation: slipin 0.18s ease-out both;
+}
+
+/* --- sliders drawn like a typographer's gauge --- */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 18px;
+  width: 100%;
+  cursor: ew-resize;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.35;
+}
+input[type="range"]::-moz-range-track {
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.35;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 16px;
+  width: 3px;
+  background: var(--verm);
+  margin-top: -8px;
+  border-radius: 0;
+}
+input[type="range"]::-moz-range-thumb {
+  height: 16px;
+  width: 3px;
+  border: 0;
+  border-radius: 0;
+  background: var(--verm);
+}
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(200, 52, 30, 0.28);
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.rail::-webkit-scrollbar {
+  width: 6px;
+}
+.rail::-webkit-scrollbar-thumb {
+  background: var(--rule);
+}
+.rail::-webkit-scrollbar-track {
+  background: transparent;
+}

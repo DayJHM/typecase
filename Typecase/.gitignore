@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+
+src-tauri/target
+src-tauri/gen/schemas
+
+.DS_Store
+*.local
+npm-debug.log*
+.dev-log.txt
+.vite-log.txt
