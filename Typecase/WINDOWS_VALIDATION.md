@@ -113,10 +113,16 @@ These gate the FontManager milestone; none may be claimed done from Linux.
 ## 6. External fonts & removed fonts [M7/M8]
 
 - [ ] **6.1 [M7]** Pre-install a font manually (drag into `shell:fonts`).
-  Typecase's Installed view lists it as **external** (`managedByTypecase:
-  false`) — never claimed as its own (§19–20).
-- [ ] **6.2 [M7]** External-font removal flow warns, offers cache/export first,
-  requires explicit confirmation (§25). Capture the dialog.
+  Typecase's Installed view lists it as **external** — badged
+  "External", never claimed as its own (§19–20). Capture the row.
+- [ ] **6.2 [M7]** External-font removal flow warns (dialog states
+  cross-application dependence), requires explicit confirmation, then
+  deletes the registry value and its file. Verify the entry is gone from
+  `shell:fonts` after other apps restart. Capture the dialog.
+- [ ] **6.2b [M7]** A Typecase-managed family shows the "Typecase" badge and
+  no Remove button in the Installed view (the managed uninstall lives on
+  its specimen row); attempting the external-removal IPC for it is refused
+  by the backend.
 - [ ] **6.3 [M8]** Simulate removal-from-source: with a family cached, refresh
   the catalog against a payload missing that family → face marked "Removed
   from Google Fonts", cache and install untouched, preview/install/export

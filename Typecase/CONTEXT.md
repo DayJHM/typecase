@@ -1353,8 +1353,20 @@ M6  DONE*     Windows install/uninstall behind FontManager (assessment
               WINDOWS_VALIDATION.md §5 VM session passes (Notepad/Word
               visibility, registry captures, reboot persistence, §38).
 
-M7  PLANNED   External font discovery, ownership, removal warning
-              (assessment stage 8).
+M7  DONE*     External font discovery, ownership, removal warning
+              (assessment stage 8), per M7_EXTERNAL_FONTS_DESIGN.md.
+              Registry enumeration (HKCU + HKLM fonts keys, tolerant of
+              malformed values) feeding get_installed_fonts with
+              record-based ownership classification (managed/external,
+              §20 — never inferred from visibility); Installed tab is now
+              the real Windows font environment with ownership badges;
+              §25 removal flow for external fonts (warning dialog naming
+              cross-application dependence, explicit confirm, registry
+              value + file deletion, system scope via the M6 one-shot
+              elevation helper, managed-font refusal guard on the external
+              path). Pure parsing/classification logic unit-tested (44
+              tests). *Runtime registry behavior is compile-validated in
+              CI only until the WINDOWS_VALIDATION §6 items run on a VM.
 
 M8  PLANNED   Export/backup, catalog refresh, removed-from-Google marking
               (assessment stage 9).

@@ -136,6 +136,24 @@ const en = {
   scopeUser: "this user",
   scopeSystem: "everyone",
 
+  /* M7 installed view / external fonts */
+  installedViewCap: "Set on this machine — from the Windows registry",
+  ownManaged: "Typecase",
+  ownExternal: "External",
+  instTypeFace: "typeface",
+  instTypeFaces: "typefaces",
+  extRemove: "✕ Remove from Windows",
+  extRemoving: "◔ Removing…",
+  extLab: "Remove external font",
+  extTitle: "Remove $F from Windows?",
+  extBody:
+    "This typeface was installed outside Typecase ($S). Other applications and documents may depend on it — removing it affects the whole machine, not just Typecase. The registry entry and its file will be deleted.",
+  extCacheOffer:
+    "Typecase cannot offer to cache this font yet; export a copy before removing it if you want a backup.",
+  extConfirm: "Remove typeface",
+  extRemoved: "Removed ✓",
+  extFrom: "from your user account — from this machine (administrator)",
+
   /* presets — the editorial layer */
   presets: {
     essay: {
@@ -334,6 +352,24 @@ const es: Dict = {
   uniConfirm: "Desinstalar",
   scopeUser: "este usuario",
   scopeSystem: "todos",
+
+  /* M7 vista de instaladas / fuentes externas */
+  installedViewCap: "Instaladas en esta máquina — desde el registro de Windows",
+  ownManaged: "Typecase",
+  ownExternal: "Externa",
+  instTypeFace: "tipografía",
+  instTypeFaces: "tipografías",
+  extRemove: "✕ Quitar de Windows",
+  extRemoving: "◔ Quitando…",
+  extLab: "Quitar fuente externa",
+  extTitle: "¿Quitar $F de Windows?",
+  extBody:
+    "Esta tipografía se instaló fuera de Typecase ($S). Otras aplicaciones y documentos pueden depender de ella — quitarla afecta a toda la máquina, no solo a Typecase. Se eliminarán la entrada del registro y su archivo.",
+  extCacheOffer:
+    "Typecase aún no puede ofrecer guardar esta fuente; exporta una copia antes de quitarla si quieres una copia de seguridad.",
+  extConfirm: "Quitar tipografía",
+  extRemoved: "Quitada ✓",
+  extFrom: "de tu cuenta de usuario — de esta máquina (administrador)",
 
   presets: {
     essay: {

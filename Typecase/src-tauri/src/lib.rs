@@ -2,6 +2,7 @@
 pub mod catalog;
 mod commands;
 pub mod downloads;
+pub mod externalfonts;
 pub mod fontmanager;
 pub mod library;
 
@@ -45,6 +46,8 @@ pub fn run() {
             commands::delete_cached_family,
             commands::install_font,
             commands::uninstall_font,
+            commands::get_installed_fonts,
+            commands::remove_external_font,
             commands::apply_window_theme,
             ping,
             app_version,

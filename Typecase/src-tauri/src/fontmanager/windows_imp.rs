@@ -179,6 +179,62 @@ pub fn uninstall_scoped(record: &InstallRecord) -> Result<(), String> {
     }
 }
 
+/// M7: one-shot elevation for a system-scope EXTERNAL font removal. The
+/// helper child receives the value name + path directly (no record file).
+pub fn spawn_elevated_external(
+    mode: &str,
+    value_name: &str,
+    file_path: &str,
+) -> Result<(), String> {
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::{CloseHandle, WAIT_OBJECT_0};
+    use windows::Win32::System::Threading::{GetExitCodeProcess, WaitForSingleObject};
+    use windows::Win32::UI::Shell::{
+        SHELLEXECUTEINFOW, SEE_MASK_FLAG_NO_UI, SEE_MASK_NOCLOSEPROCESS, ShellExecuteExW,
+    };
+    use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+    let exe = std::env::current_exe().map_err(|e| format!("cannot resolve current exe: {e}"))?;
+    let verb = wide("runas");
+    let file = wide(&exe.to_string_lossy());
+    let params = wide(&format!(
+        "{mode} \"{}\" \"{}\"",
+        value_name.replace('"', ""),
+        file_path.replace('"', "")
+    ));
+
+    let mut sei = SHELLEXECUTEINFOW {
+        cbSize: std::mem::size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOCLOSEPROCESS | SEE_MASK_FLAG_NO_UI,
+        lpVerb: PCWSTR(verb.as_ptr()),
+        lpFile: PCWSTR(file.as_ptr()),
+        lpParameters: PCWSTR(params.as_ptr()),
+        nShow: SW_SHOWNORMAL.0,
+        ..Default::default()
+    };
+    // SAFETY: buffers alive across the synchronous call; NOCLOSEPROCESS
+    // yields the child handle we wait on.
+    unsafe { ShellExecuteExW(&mut sei) }
+        .map_err(|e| format!("elevation request failed (declined?): {e}"))?;
+    if sei.hProcess.is_invalid() {
+        return Err("elevation returned no process handle".into());
+    }
+    let wait = unsafe { WaitForSingleObject(sei.hProcess, 120_000) };
+    if wait != WAIT_OBJECT_0 {
+        return Err("elevated operation timed out".into());
+    }
+    let mut code: u32 = 0;
+    let _ = unsafe { GetExitCodeProcess(sei.hProcess, &mut code) };
+    let _ = unsafe { CloseHandle(sei.hProcess) };
+    if code == 0 {
+        Ok(())
+    } else {
+        Err(format!(
+            "elevated removal failed (exit {code}) — consent may have been declined"
+        ))
+    }
+}
+
 /* ---- scoped elevation (M6_FONTMANAGER_DESIGN §1) ----
 
    System-scope registry/file writes need admin consent; §23 forbids running

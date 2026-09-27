@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Rail from "./components/Rail";
 import Sheet from "./components/Sheet";
+import InstalledView from "./components/InstalledView";
 import Shell, { type View } from "./components/Shell";
 import { useFaces } from "./hooks/useFaces";
 import { PHASE_ORDER } from "./data/face";
@@ -99,6 +100,14 @@ export default function App() {
           <p className="lab mt-3 text-warm">{t.loadingCatalog}</p>
         </div>
       ) : (
+        view === "installed" ? (
+          <InstalledView
+            onOpenManaged={(id) => {
+              setSelectedId(id);
+              setView("discover");
+            }}
+          />
+        ) : (
         <div className="grid grid-cols-1 gap-x-10 pt-5 lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside id="index" className="order-2 min-h-0 border-t border-ink pt-4 lg:order-1 lg:sticky lg:top-0 lg:h-[calc(100vh-140px)] lg:border-t-0 lg:border-r lg:border-rule lg:pr-6">
             <Rail
@@ -130,6 +139,7 @@ export default function App() {
             )}
           </div>
         </div>
+        )
       )}
     </Shell>
   );

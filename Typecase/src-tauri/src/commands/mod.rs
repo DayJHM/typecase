@@ -298,6 +298,57 @@ pub fn uninstall_font(state: State<TypecaseState>, id: String) -> Result<Install
     })
 }
 
+/// M7: every font registered in Windows (both scopes), classified by
+/// ownership against Typecase's install records (§19–20).
+#[tauri::command]
+pub fn get_installed_fonts(
+    state: State<TypecaseState>,
+) -> Result<Vec<crate::externalfonts::ExternalFont>, String> {
+    let records = state.installs.lock().expect("install mutex poisoned");
+    Ok(crate::externalfonts::discover(&records))
+}
+
+/// M7: remove an EXTERNAL font (no Typecase record) after the UI's explicit
+/// §25 confirmation. System scope elevates via the M6 one-shot helper.
+#[tauri::command]
+pub fn remove_external_font(
+    state: State<TypecaseState>,
+    value_name: String,
+    file_path: String,
+    scope: String,
+) -> Result<(), String> {
+    #[cfg(debug_assertions)]
+    eprintln!("[typecase] remove_external_font: {value_name} scope={scope}");
+    let scope = match scope.as_str() {
+        "user" => Scope::User,
+        "system" => Scope::System,
+        other => return Err(format!("unknown scope: {other}")),
+    };
+    // Refuse to remove anything Typecase manages through this path — managed
+    // fonts have their own record-based uninstall (§20).
+    let records = state.installs.lock().expect("install mutex poisoned");
+    if records.values().any(|r| {
+        r.entries
+            .iter()
+            .any(|e| e.value_name == value_name)
+    }) {
+        return Err(
+            "this font was installed by Typecase — use the managed uninstall instead".into(),
+        );
+    }
+    drop(records);
+
+    if scope == Scope::System {
+        crate::externalfonts::remove_external_elevated(&value_name, &file_path)
+    } else {
+        crate::externalfonts::remove_external(
+            Scope::User,
+            &value_name,
+            &file_path,
+        )
+    }
+}
+
 fn scope_str(scope: Scope) -> &'static str {
     match scope {
         Scope::User => "user",

@@ -108,6 +108,35 @@ export async function uninstallFont(id: string): Promise<InstallOutcome> {
   return invoke<InstallOutcome>("uninstall_font", { id });
 }
 
+/** M7: every font registered in Windows, with record-based ownership. */
+export type Ownership = "managed" | "external" | "unknown";
+
+export interface RegisteredFont {
+  valueName: string;
+  family: string;
+  style: string;
+  filePath: string;
+  scope: "user" | "system";
+  ownership: Ownership;
+  id: string | null;
+}
+
+export async function fetchInstalledFonts(): Promise<RegisteredFont[]> {
+  if (!isTauri()) return [];
+  return invoke<RegisteredFont[]>("get_installed_fonts");
+}
+
+/** M7 §25: remove an EXTERNAL font (never a managed one — the backend
+    refuses). The UI must show the removal warning first. */
+export async function removeExternalFont(
+  valueName: string,
+  filePath: string,
+  scope: "user" | "system"
+): Promise<void> {
+  if (!isTauri()) throw new Error("Removing requires the Tauri runtime");
+  await invoke("remove_external_font", { valueName, filePath, scope });
+}
+
 /** Details for one face (record + live library state) straight from the
     backend. */
 export async function fetchFontDetails(id: string): Promise<RawFace | null> {
