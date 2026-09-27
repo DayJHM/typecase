@@ -56,8 +56,15 @@ fn open_fonts_key(scope: Scope, write: bool) -> Result<windows::Win32::System::R
     let status = unsafe {
         RegOpenKeyExW(root, PCWSTR(wide.as_ptr()), 0, access, &mut key)
     };
-    status.map_err(|e| format!("cannot open {}\\{REG_FONTS_KEY}: {e}", hive_root(scope)))?;
-    Ok(key)
+    if status.is_ok() {
+        Ok(key)
+    } else {
+        Err(format!(
+            "cannot open {}\\{REG_FONTS_KEY}: WIN32_ERROR({})",
+            hive_root(scope),
+            status.0
+        ))
+    }
 }
 
 fn set_value(scope: Scope, value_name: &str, data: &str) -> Result<(), String> {
@@ -66,23 +73,27 @@ fn set_value(scope: Scope, value_name: &str, data: &str) -> Result<(), String> {
     let key = open_fonts_key(scope, true)?;
     let name: Vec<u16> = value_name.encode_wide().chain(std::iter::once(0)).collect();
     let data: Vec<u16> = data.encode_wide().chain(std::iter::once(0)).collect();
-    // SAFETY: all pointers are valid NUL-terminated UTF-16 buffers owned for
-    // the synchronous call; key is an open handle with KEY_SET_VALUE.
+    // UTF-16 bytes little-endian, as REG_SZ expects.
+    let bytes: Vec<u8> = data
+        .as_bytes()
+        .iter()
+        .flat_map(|b| b.to_le_bytes())
+        .collect();
+    // SAFETY: all buffers are valid for the synchronous call; key is an open
+    // handle with KEY_SET_VALUE.
     let status = unsafe {
-        RegSetValueExW(
-            key,
-            PCWSTR(name.as_ptr()),
-            0,
-            REG_SZ,
-            Some(data.as_bytes().as_ptr().cast::<u8>()),
-            (data.len() * 2) as u32,
-        )
+        RegSetValueExW(key, PCWSTR(name.as_ptr()), 0, REG_SZ, Some(&bytes))
     };
     let _ = unsafe { RegCloseKey(key) };
-    status.map_err(|e| format!("cannot write value \"{value_name}\": {e}"))
+    if status.is_ok() {
+        Ok(())
+    } else {
+        Err(format!("cannot write value \"{value_name}\": WIN32_ERROR({})", status.0))
+    }
 }
 
 fn delete_value(scope: Scope, value_name: &str) -> Result<(), String> {
+    use windows::Win32::Foundation::ERROR_FILE_NOT_FOUND;
     use windows::Win32::System::Registry::*;
     use windows::core::PCWSTR;
     let key = open_fonts_key(scope, true)?;
@@ -91,9 +102,11 @@ fn delete_value(scope: Scope, value_name: &str) -> Result<(), String> {
     let status = unsafe { RegDeleteValueW(key, PCWSTR(name.as_ptr())) };
     let _ = unsafe { RegCloseKey(key) };
     match status {
-        Ok(()) => Ok(()),
-        Err(e) if e.code() == windows::Win32::Foundation::ERROR_FILE_NOT_FOUND.to_hresult() => Ok(()),
-        Err(e) => Err(format!("cannot delete value \"{value_name}\": {e}")),
+        s if s == ERROR_FILE_NOT_FOUND || s.is_ok() => Ok(()),
+        s => Err(format!(
+            "cannot delete value \"{value_name}\": WIN32_ERROR({})",
+            s.0
+        )),
     }
 }
 
@@ -216,6 +229,7 @@ fn spawn_elevated(mode: &str, record: &InstallRecord) -> Result<(), String> {
         nShow: SW_SHOWNORMAL.0,
         ..Default::default()
     };
+    let _ = SEE_MASK_NOCLOSEPROCESS; let _ = SEE_MASK_FLAG_NO_UI;
     // SAFETY: every PCWSTR points to a buffer alive across the synchronous
     // call; SEE_MASK_NOCLOSEPROCESS yields the child handle we wait on.
     unsafe { ShellExecuteExW(&mut sei) }
