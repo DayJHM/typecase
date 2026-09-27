@@ -8,6 +8,7 @@
 
 use super::{hive_root, FontManager, InstallEntry, InstallRecord};
 use crate::library::model::Scope;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 const REG_FONTS_KEY: &str = r"Software\Microsoft\Windows NT\CurrentVersion\Fonts";
@@ -158,6 +159,8 @@ fn broadcast_font_change() {
     }
 }
 
+pub struct WindowsFontManager;
+
 fn wide(s: &str) -> Vec<u16> {
     // std str method — no OsStrExt import needed
     s.encode_utf16().chain(std::iter::once(0)).collect()
@@ -243,7 +246,6 @@ fn spawn_elevated(mode: &str, record: &InstallRecord) -> Result<(), String> {
         nShow: SW_SHOWNORMAL.0,
         ..Default::default()
     };
-    let _ = SEE_MASK_NOCLOSEPROCESS; let _ = SEE_MASK_FLAG_NO_UI;
     // SAFETY: every PCWSTR points to a buffer alive across the synchronous
     // call; SEE_MASK_NOCLOSEPROCESS yields the child handle we wait on.
     unsafe { ShellExecuteExW(&mut sei) }
