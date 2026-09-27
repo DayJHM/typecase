@@ -58,11 +58,7 @@ Windows. Linux testing never substitutes for Windows validation (CONTEXT §38).
 
 ## CI
 
-<!-- When this repository has a GitHub remote, uncomment the badge and fill
-     in <org>/<repo>:
-
-[![Windows CI](https://github.com/<org>/<repo>/actions/workflows/windows.yml/badge.svg)](https://github.com/<org>/<repo>/actions/workflows/windows.yml)
--->
+[![Windows CI](https://github.com/DayJHM/typecase/actions/workflows/windows.yml/badge.svg)](https://github.com/DayJHM/typecase/actions/workflows/windows.yml)
 
 `.github/workflows/windows.yml` runs on **windows-latest** on every push/PR:
 
