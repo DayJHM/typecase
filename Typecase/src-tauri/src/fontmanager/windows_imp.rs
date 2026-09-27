@@ -71,12 +71,8 @@ fn set_value(scope: Scope, value_name: &str, data: &str) -> Result<(), String> {
     let key = open_fonts_key(scope, true)?;
     let name: Vec<u16> = value_name.encode_utf16().chain(std::iter::once(0)).collect();
     let data: Vec<u16> = data.encode_utf16().chain(std::iter::once(0)).collect();
-    // UTF-16 bytes little-endian, as REG_SZ expects.
-    let bytes: Vec<u8> = data
-        .as_bytes()
-        .iter()
-        .flat_map(|b| b.to_le_bytes())
-        .collect();
+    // UTF-16 code units little-endian, as REG_SZ expects.
+    let bytes: Vec<u8> = data.iter().flat_map(|u| u.to_le_bytes()).collect();
     // SAFETY: all buffers are valid for the synchronous call; key is an open
     // handle with KEY_SET_VALUE.
     let status = unsafe {
