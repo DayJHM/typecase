@@ -10,7 +10,7 @@ use windows::core::PCWSTR;
 use windows::Win32::Foundation::ERROR_NO_MORE_ITEMS;
 use windows::Win32::System::Registry::{
     RegCloseKey, RegEnumValueW, RegOpenKeyExW, RegQueryValueExW, HKEY, HKEY_LOCAL_MACHINE,
-    HKEY_CURRENT_USER, KEY_READ, REG_SZ,
+    HKEY_CURRENT_USER, KEY_READ, REG_SZ, REG_VALUE_TYPE,
 };
 
 const REG_FONTS_KEY: &str = r"Software\Microsoft\Windows NT\CurrentVersion\Fonts";
@@ -36,7 +36,7 @@ fn open_key(scope: Scope) -> Result<HKEY, String> {
 
 /// Read the REG_SZ data (file path) of one value; empty string when absent.
 fn value_data(key: HKEY, name: &[u16]) -> String {
-    let mut kind = 0u32;
+    let mut kind = REG_VALUE_TYPE(0);
     let mut bytes = [0u8; 1024];
     let mut size = bytes.len() as u32;
     // SAFETY: `name` is NUL-terminated; `bytes` outlives the call.

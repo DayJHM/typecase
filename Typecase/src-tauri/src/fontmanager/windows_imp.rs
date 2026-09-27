@@ -120,7 +120,7 @@ fn value_exists(scope: Scope, value_name: &str) -> bool {
 /// Load/unload the font for this logon session. Returns the number of fonts
 /// added/removed (0 is not necessarily an error after a fresh copy).
 fn add_font_resource(path: &str) -> i32 {
-    use windows::Win32::Graphics::Gdi::{AddFontResourceW, RemoveFontResourceW};
+    use windows::Win32::Graphics::Gdi::AddFontResourceW;
     use windows::core::PCWSTR;
     let w = wide(path);
     // SAFETY: `w` is a NUL-terminated UTF-16 path owned for the call.

@@ -58,7 +58,7 @@ impl InstallStore {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fontmanager::{plan_install, InstallEntry};
+    use crate::fontmanager::plan_install;
     use crate::library::model::Scope;
 
     fn tmpdir(tag: &str) -> PathBuf {
