@@ -35,9 +35,9 @@ jobs:
       run:
         working-directory: Typecase
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -81,7 +81,7 @@ jobs:
         run: npm run tauri build -- --bundles nsis,msi
 
       - name: Upload installers
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: typecase-windows-installers
           path: |
@@ -92,7 +92,7 @@ jobs:
       # Tier-2 prep: stage the manual checklist next to the artifacts so the
       # VM session (WINDOWS_VALIDATION.md) starts from the exact build.
       - name: Upload validation checklist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-validation-checklist
           path: Typecase/WINDOWS_VALIDATION.md
