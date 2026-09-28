@@ -1,0 +1,113 @@
+name: windows-build
+
+# Reusable build body shared by windows.yml (push/PR/nightly gate) and
+# release.yml (tag builds). Extracted in M9 so the gate and release builds
+# cannot drift: the steps here are the single source of truth for what a
+# Typecase Windows build runs (M9_DISTRIBUTION_DESIGN.md §3).
+#
+# Path note: every Typecase/ prefix below assumes the repository root is the
+# workspace (the repo contains a Typecase folder). If the repo is rooted at
+# the project itself, drop the prefixes here and in the cache/artifact paths.
+
+on:
+  workflow_call:
+    inputs:
+      network_tests:
+        description: "Also run the network integration tests (real Google Fonts endpoint)"
+        type: boolean
+        default: false
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: Typecase
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Typecase/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: Typecase/src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Typecheck (tsc)
+        run: npm run typecheck
+
+      - name: Frontend build (vite)
+        run: npm run build
+
+      - name: Rust tests (unit + non-network integration)
+        run: cargo test --locked
+        working-directory: Typecase/src-tauri
+
+      # Network tier — the download pipeline against the real Google Fonts
+      # endpoint from a Windows IP. Release builds always run it; ordinary
+      # pushes get it only when the caller forwards network_tests (nightly
+      # schedule or dispatch input), or RUN_NETWORK_TESTS is set on the repo.
+      - name: Rust network integration tests
+        if: >-
+          inputs.network_tests == true ||
+          vars.RUN_NETWORK_TESTS == 'true'
+        run: cargo test --locked --test download_pipeline -- --ignored
+        working-directory: Typecase/src-tauri
+        env:
+          # keep reqwest from picking up runner proxies unexpectedly
+          NO_PROXY: fonts.googleapis.com,fonts.gstatic.com
+
+      - name: Bundle installers (NSIS + MSI)
+        run: npm run tauri build -- --bundles nsis,msi
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v7
+        with:
+          name: typecase-windows-installers
+          path: |
+            Typecase/src-tauri/target/release/bundle/nsis/*.exe
+            Typecase/src-tauri/target/release/bundle/msi/*.msi
+          if-no-files-found: error
+
+      # M9 portable artifact: the raw release exe. Tauri 2 has no dedicated
+      # portable bundle target on Windows; the same binary runs standalone
+      # because WebView2 ships in Windows 10 1809+/11 (Evergreen runtime).
+      # It shares the installed build's per-user data root by design
+      # (M9_DISTRIBUTION_DESIGN.md §2; checklist §7.6).
+      - name: Stage portable exe
+        shell: pwsh
+        run: |
+          $root = $env:GITHUB_WORKSPACE
+          $src = "$root/Typecase/src-tauri/target/release"
+          $exe = Get-Item "$src/typecase.exe" -ErrorAction SilentlyContinue
+          if (-not $exe) {
+            $exe = Get-ChildItem $src -Filter *.exe |
+              Where-Object { $_.Name -notmatch '(?i)uninstall|setup|installer' } |
+              Sort-Object Length -Descending | Select-Object -First 1
+          }
+          if (-not $exe) { throw "no release exe found under $src" }
+          Copy-Item $exe.FullName "$root/Typecase-portable.exe"
+          "Staged portable: $($exe.Name) ($([math]::Round($exe.Length/1MB,1)) MB)"
+
+      - name: Upload portable exe
+        uses: actions/upload-artifact@v7
+        with:
+          name: typecase-windows-portable
+          path: Typecase-portable.exe
+          if-no-files-found: error
+
+      # Tier-2 prep: stage the manual checklist next to the artifacts so the
+      # VM session (WINDOWS_VALIDATION.md) starts from the exact build.
+      - name: Upload validation checklist
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-validation-checklist
+          path: Typecase/WINDOWS_VALIDATION.md

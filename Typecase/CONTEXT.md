@@ -1396,7 +1396,24 @@ M8  DONE*     Export/backup, catalog refresh, removed-from-source marking
               from the disk catalog. *Windows-end-to-end UI flows compile-
               validate in CI; §6.3–6.5 run in the VM session.
 
-M9  PLANNED   Distribution: portable + installer (assessment stage 10).
+M9  DONE*     Distribution (assessment stage 10): portable + installer +
+              tag-driven GitHub releases (M9_DISTRIBUTION_DESIGN.md).
+              Build body extracted to .github/workflows/build-windows.yml
+              (workflow_call) so the push/nightly gate (windows.yml, triggers
+              unchanged) and release builds (release.yml, tags v*, network
+              tier always on) cannot drift. New artifact
+              typecase-windows-portable: the raw release exe — Tauri 2 has
+              no portable bundle target on Windows; WebView2 Evergreen covers
+              10 1809+/11; shares the installed build's per-user data root by
+              design. Release job publishes NSIS+MSI+portable+checklist as
+              permanent assets (-rc tags → prerelease). No code signing
+              (§7.2 records unsigned) and no auto-updater (§42) by decision.
+              §43 acceptance mapping added as WINDOWS_VALIDATION §8; flow-3
+              "cache external font" recorded there as an unimplemented
+              deviation (§29 cache_external_font; extCacheOffer copy is
+              honest). DONE* pending: refactor's CI run, the first v* tag
+              exercising release.yml, and the §7/§8 VM test pass gating
+              v0.1.0.
 ```
 
 Windows-only validation (assessment stages 7–8, §38) is performed at M6 and

@@ -8,9 +8,11 @@ name: windows-ci
 # covers what a headless runner cannot: UxTheme title bars, font
 # installation, reboot persistence.
 #
-# Path note: every Typecase/ prefix below assumes the repository root is the
-# workspace (the repo contains a Typecase folder). If the repo is rooted at
-# the project itself, drop the prefixes here and in the cache/artifact paths.
+# Since M9 the build body lives in build-windows.yml (shared with
+# release.yml) so the gate and release builds cannot drift. This file only
+# chooses when the gate runs and whether the network tier is included:
+# scheduled runs always run the network tier; dispatch runs when asked;
+# ordinary pushes skip it to stay fast and hermetic.
 
 on:
   push:
@@ -30,69 +32,6 @@ on:
 
 jobs:
   windows:
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: Typecase
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: Typecase/package-lock.json
-
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: Typecase/src-tauri
-
-      - name: Install frontend dependencies
-        run: npm ci
-
-      - name: Typecheck (tsc)
-        run: npm run typecheck
-
-      - name: Frontend build (vite)
-        run: npm run build
-
-      - name: Rust tests (unit + non-network integration)
-        run: cargo test --locked
-        working-directory: Typecase/src-tauri
-
-      # Network tier — the download pipeline against the real Google Fonts
-      # endpoint from a Windows IP. Runs nightly (schedule), on demand
-      # (dispatch input), or on every push when RUN_NETWORK_TESTS is set;
-      # ordinary pushes skip it to stay fast and hermetic.
-      - name: Rust network integration tests
-        if: >-
-          github.event_name == 'schedule' ||
-          inputs.network_tests == true ||
-          vars.RUN_NETWORK_TESTS == 'true'
-        run: cargo test --locked --test download_pipeline -- --ignored
-        working-directory: Typecase/src-tauri
-        env:
-          # keep reqwest from picking up runner proxies unexpectedly
-          NO_PROXY: fonts.googleapis.com,fonts.gstatic.com
-
-      - name: Bundle installers (NSIS + MSI)
-        run: npm run tauri build -- --bundles nsis,msi
-
-      - name: Upload installers
-        uses: actions/upload-artifact@v7
-        with:
-          name: typecase-windows-installers
-          path: |
-            Typecase/src-tauri/target/release/bundle/nsis/*.exe
-            Typecase/src-tauri/target/release/bundle/msi/*.msi
-          if-no-files-found: error
-
-      # Tier-2 prep: stage the manual checklist next to the artifacts so the
-      # VM session (WINDOWS_VALIDATION.md) starts from the exact build.
-      - name: Upload validation checklist
-        uses: actions/upload-artifact@v7
-        with:
-          name: windows-validation-checklist
-          path: Typecase/WINDOWS_VALIDATION.md
+    uses: ./.github/workflows/build-windows.yml
+    with:
+      network_tests: ${{ github.event_name == 'schedule' || inputs.network_tests == true }}

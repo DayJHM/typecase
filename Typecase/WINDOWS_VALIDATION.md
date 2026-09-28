@@ -152,6 +152,11 @@ These gate the FontManager milestone; none may be claimed done from Linux.
   fonts.googleapis.com/gstatic (observe in Resource Monitor → Network). §36.
 - [ ] **7.5** File the session: evidence folder zipped next to the release,
   checklist ticked, deviations logged in CONTEXT.md §45.
+- [ ] **7.6 [M9]** Portable exe: download `typecase-windows-portable` from the
+  same run, run `Typecase-portable.exe` directly (no install) on a clean VM →
+  app launches and behaves identically; `%LOCALAPPDATA%\Typecase\` is the data
+  root exactly as for the installed build (shared by design,
+  M9_DISTRIBUTION_DESIGN.md §2); WebView2 requirement holds on 1809+.
 
 ---
 
@@ -159,8 +164,44 @@ These gate the FontManager milestone; none may be claimed done from Linux.
 
 ```text
 Windows validation <date> — <Windows edition/version> — build <artifact id>
-Items passed: 1.1–1.4, 2.1–2.5, 3.1–3.3, 4.1–4.5, 7.1–7.5
-Items deferred (feature not yet implemented): 5.x [M6], 6.x [M7/M8]
+Items passed: 1.1–1.4, 2.1–2.6, 3.1–3.3, 4.1–4.5, 5.1–5.8, 6.1–6.6, 7.1–7.6
+Items deferred (feature not yet implemented): none (see deviations)
 Deviations: <none or list>
 Evidence: typecase-evidence-<date>.zip
 ```
+
+---
+
+# 8. §43 acceptance mapping — the release test pass
+
+Assessment stage 10 requires "Windows test pass for the §43 success
+workflows". Each §43 flow maps to checklist items above; run them in one
+session against the release-candidate build and file the session log. The
+final `v0.1.0` tag follows the recorded pass (M9_DISTRIBUTION_DESIGN.md §4).
+
+**Flow 1 — discovery → install → persistence.** Launch → search → preview →
+download → cached → offline preview → install for current user → works in
+Windows apps → survives Typecase exit → survives reboot → uninstall →
+cached copy remains → reinstall from cache → export backup.
+→ **4.1–4.3** (discover/preview/cache/offline), **5.1–5.4** (install,
+visibility, persistence), **5.6** (uninstall; its retained cache is what the
+reinstall step uses — capture the family returning to Installed), **6.4**
+(export backup).
+
+**Flow 2 — removed from Google.** Google removes a font → Typecase detects
+the catalog change → marked "Removed from Google Fonts" → local copy
+remains → installed copy remains → user can preview/install/export it.
+→ **6.3** (simulated removal), **6.6** (real refresh + offline honesty),
+**6.4/6.5** (export, incl. from the installed copy after §24 cache deletion).
+
+**Flow 3 — external font.** External font exists → Typecase discovers it →
+shows it as externally installed → user may cache it → requests uninstall →
+warned about external ownership → explicit confirmation.
+→ **6.1, 6.2 (+ 6.2b)**. Recorded deviation: "cache it" is **not
+implemented** (§29 `cache_external_font`; the removal dialog says so via
+`extCacheOffer`) — §25's export-first offer (export a copy before removing)
+is the validated substitute; log it as a deviation, never claim the step.
+
+Release-candidate gate: **7.1–7.6** on a clean snapshot **plus flows 1–3**
+above constitute the stage-10 test pass; the permanent release assets live
+on the `v*` tag's GitHub release, not in aging run artifacts.
