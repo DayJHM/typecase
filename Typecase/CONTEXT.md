@@ -1411,9 +1411,10 @@ M9  DONE*     Distribution (assessment stage 10): portable + installer +
               §43 acceptance mapping added as WINDOWS_VALIDATION §8; flow-3
               "cache external font" recorded there as an unimplemented
               deviation (§29 cache_external_font; extCacheOffer copy is
-              honest). DONE* pending: refactor's CI run, the first v* tag
-              exercising release.yml, and the §7/§8 VM test pass gating
-              v0.1.0.
+              honest). DONE* pending: the first v* tag exercising
+              release.yml and the §7/§8 VM test pass gating v0.1.0 — the
+              refactor itself is verified (run 36461564474 green,
+              portable artifact 4.86 MB produced).
 ```
 
 Windows-only validation (assessment stages 7–8, §38) is performed at M6 and

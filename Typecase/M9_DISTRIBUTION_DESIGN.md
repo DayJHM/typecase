@@ -94,8 +94,10 @@ claiming the step.
 
 ## 7. Verification record
 
-- [ ] Reusable-workflow refactor: windows-ci green on the M9 push (same
-      steps, new topology).
-- [ ] `typecase-windows-portable` artifact produced alongside installers.
+- [x] Reusable-workflow refactor: windows-ci green on the M9 push — run
+      36461564474 (commit aba8830): full step list passed, including the
+      network-tier skip on an ordinary push (gate semantics preserved).
+- [x] `typecase-windows-portable` produced alongside installers: 4.86 MB
+      staged exe vs 8.42 MB installers artifact.
 - [ ] Release workflow untested until the first `v*` tag (the RC) — recorded
       here when it runs.
