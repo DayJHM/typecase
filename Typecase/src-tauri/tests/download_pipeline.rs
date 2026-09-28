@@ -29,6 +29,7 @@ fn rec() -> FontRecord {
         note: String::new(),
         pairs_with: String::new(),
         popularity: 5,
+        removed_from_source: false,
     }
 }
 
@@ -243,4 +244,59 @@ fn cache_downgrade_preserves_installed_state() {
     );
 
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+/* ---- M8: live catalog refresh (§15–16) — network, ignored by default ----
+
+   Drives the real metadata endpoint through the Rust port of the M3
+   generator: the candidate must be plausible against the embedded snapshot
+   (same order of magnitude, slug parity on a sample), and a removed-family
+   apply-merge must never delete state. Run with --ignored alongside the
+   download tests (nightly CI). */
+#[test]
+#[ignore = "touches the network; run with --ignored"]
+fn refresh_candidate_tracks_the_live_endpoint() {
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .expect("http client");
+    let res = client
+        .get(typecase_lib::catalog::refresh::METADATA_URL)
+        .send()
+        .expect("metadata endpoint reachable")
+        .error_for_status()
+        .expect("endpoint returns 200");
+    let raw = res.text().expect("body reads as text");
+    let payload = typecase_lib::catalog::refresh::parse_payload(&raw)
+        .expect("the live payload parses (incl. junk-prefix handling)");
+    let candidate = typecase_lib::catalog::refresh::build_candidate(&payload);
+
+    // Plausibility against the embedded snapshot: the live family count is
+    // within 15% of the bundled one (Google adds families steadily; a huge
+    // delta means the merge or endpoint drifted).
+    let cat = Catalog::embedded();
+    let delta = candidate.len().abs_diff(cat.records.len());
+    assert!(
+        delta * 100 / cat.records.len() < 15,
+        "live catalog {} vs bundled {} — drift beyond 15%",
+        candidate.len(),
+        cat.records.len()
+    );
+
+    // Slug parity on a live sample (the whole-catalog parity test runs
+    // offline in the unit suite; this proves the endpoint still behaves).
+    for r in candidate.iter().take(50) {
+        assert_eq!(
+            typecase_lib::catalog::refresh::slug(&r.family),
+            r.id,
+            "slug parity for {}",
+            r.family
+        );
+    }
+
+    // §16 dry run: diff the live candidate against the embedded snapshot.
+    // Counts only — an apply is never executed from a test.
+    let diff = typecase_lib::catalog::refresh::diff_catalog(&cat.records, &candidate);
+    assert_eq!(diff.total, candidate.len());
+    assert!(diff.added + diff.changed + diff.removed < candidate.len());
 }

@@ -1368,8 +1368,33 @@ M7  DONE*     External font discovery, ownership, removal warning
               tests). *Runtime registry behavior is compile-validated in
               CI only until the WINDOWS_VALIDATION §6 items run on a VM.
 
-M8  PLANNED   Export/backup, catalog refresh, removed-from-Google marking
-              (assessment stage 9).
+M8  DONE*     Export/backup, catalog refresh, removed-from-source marking
+              (assessment stage 9), per M8_EXPORT_REFRESH_DESIGN.md.
+              exports/: dependency-free ZIP writer (stored entries; CRC-32
+              checked against test vectors) + README manifest; export_font
+              uses cached files first, installed files as fallback (export
+              survives a §24 cache deletion on installed families); the
+              destination is chosen by the backend — exports/ under the app
+              data dir (§31), staged atomic write, frontend never supplies
+              paths. catalog/refresh.rs: Rust port of the M3 generator
+              (slug parity asserted against all 1,946 embedded records;
+              combining-mark stripping and code-point sort were the subtle
+              bits); refresh_catalog diffs the live endpoint against the
+              active catalog and PARKS the result (§15 — nothing
+              auto-applies); apply_catalog_refresh is the only write path,
+              atomically to catalog/catalog.json, loaded disk-over-embedded
+              with corrupt-file fallback. FontRecord.removedFromSource:
+              set for families the source drops (never deleted — §16),
+              cleared when they return; Sheet banner, Rail ✝ marker and a
+              summary count, all EN+ES. State: TypecaseState.catalog →
+              RwLock (apply is the single writer; atomic swap). 69 unit
+              tests + tests/export_backup.rs + a live-endpoint network
+              test (nightly CI). Verified live in the Tauri dev window
+              via a one-shot check (removed after the run): real export
+              (19-entry ZIP of Inter), real refresh (+0 ~1939 −0 popularity
+              drift vs the M3 snapshot), apply, and a 1,946-family reload
+              from the disk catalog. *Windows-end-to-end UI flows compile-
+              validate in CI; §6.3–6.5 run in the VM session.
 
 M9  PLANNED   Distribution: portable + installer (assessment stage 10).
 ```

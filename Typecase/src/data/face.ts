@@ -40,6 +40,7 @@ function toFace(raw: RawFace): Face {
     pairsWith: typeof raw.pairsWith === "string" ? raw.pairsWith : "",
     phase: (raw.phase as Phase) ?? "online",
     local: !!raw.local,
+    removedFromSource: !!raw.removedFromSource,
   };
 }
 
@@ -107,6 +108,10 @@ export function facesInPhase(phase: Phase): Face[] {
 /** Re-fetch the catalog after a backend mutation (M4 download) and absorb it
     into the store. Unchanged faces keep their object identity, so specimen
     effects do not re-fire; changed faces (phase moved) swap cleanly. */
+export function anyRemoved(): number {
+  return cachedList.filter((f) => f.removedFromSource).length;
+}
+
 export async function refreshFaces(): Promise<void> {
   try {
     absorb(await fetchCatalog());

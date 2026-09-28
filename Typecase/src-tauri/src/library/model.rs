@@ -34,6 +34,11 @@ pub struct FontRecord {
     pub pairs_with: String,
     #[serde(default)]
     pub popularity: u32,
+    /// M8 §16: true when a catalog refresh found that the source (Google
+    /// Fonts) no longer lists this family. Pure metadata: the cache and any
+    /// installation are untouched — preview/install/export keep working.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub removed_from_source: bool,
 }
 
 /// Per-face library state, owned by the backend (CONTEXT.md §17).
@@ -162,6 +167,7 @@ mod tests {
             note: "workhorse".into(),
             pairs_with: "Newsreader".into(),
             popularity: 1,
+            removed_from_source: false,
         };
         let fs = FaceStatus {
             record: rec,

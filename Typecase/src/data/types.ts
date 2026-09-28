@@ -34,4 +34,7 @@ export type Face = {
   phase: Phase;
   /** True when the face resolves from a local file rather than the network. */
   local: boolean;
+  /** M8 §16: the source (Google Fonts) no longer lists this family. The
+      cache and any installation are untouched — this only marks it. */
+  removedFromSource: boolean;
 };

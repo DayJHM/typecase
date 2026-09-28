@@ -137,6 +137,50 @@ export async function removeExternalFont(
   await invoke("remove_external_font", { valueName, filePath, scope });
 }
 
+/** M8 (§15): fetch the live catalog and diff it against the active one.
+    Nothing is applied — the result parks as a pending refresh the user can
+    accept (applyCatalogRefresh) or ignore. */
+export interface CatalogDiffInfo {
+  total: number;
+  added: number;
+  changed: number;
+  removed: number;
+  addedNames: string[];
+  removedNames: string[];
+  unchanged: boolean;
+}
+
+export async function refreshCatalog(): Promise<CatalogDiffInfo> {
+  if (!isTauri()) throw new Error("Refreshing requires the Tauri runtime");
+  return invoke<CatalogDiffInfo>("refresh_catalog");
+}
+
+/** M8: apply the pending refresh (the explicit user-confirmed step). */
+export interface ApplyOutcomeInfo {
+  total: number;
+  removedTotal: number;
+}
+
+export async function applyCatalogRefresh(): Promise<ApplyOutcomeInfo> {
+  if (!isTauri()) throw new Error("Applying requires the Tauri runtime");
+  return invoke<ApplyOutcomeInfo>("apply_catalog_refresh");
+}
+
+/** M8 (§11/§26): export a family as a ZIP of its TTF/OTF files plus a
+    README manifest, written to a backend-chosen destination. */
+export interface ExportOutcomeInfo {
+  id: string;
+  family: string;
+  file: string;
+  fileCount: number;
+  source: "cached" | "installed";
+}
+
+export async function exportFont(id: string): Promise<ExportOutcomeInfo> {
+  if (!isTauri()) throw new Error("Exporting requires the Tauri runtime");
+  return invoke<ExportOutcomeInfo>("export_font", { id });
+}
+
 /** Details for one face (record + live library state) straight from the
     backend. */
 export async function fetchFontDetails(id: string): Promise<RawFace | null> {

@@ -127,6 +127,18 @@ These gate the FontManager milestone; none may be claimed done from Linux.
   the catalog against a payload missing that family → face marked "Removed
   from Google Fonts", cache and install untouched, preview/install/export
   still work (§16).
+- [ ] **6.4 [M8]** Export: open a cached family → **⇩ Export ZIP** →
+  `%LOCALAPPDATA%\Typecase\exports\<id>-typecase-export.zip` contains the
+  TTFs plus a README manifest; open the archive in Explorer and extract one
+  font (double-click → font viewer renders it). Capture the folder listing.
+- [ ] **6.5 [M8]** Export after §24: delete a family's cache while it stays
+  installed → export still succeeds (falls back to the installed copy) and
+  the README/outcome says "installed copy".
+- [ ] **6.6 [M8]** Catalog refresh (real network): **⟳ Check for catalog
+  updates** → an update notice lists N/M/R; **Not now** dismisses without
+  applying; refresh again → **Update catalog** → counts move and the app
+  serves the refreshed catalog. Offline: the button reports failure
+  honestly and the app stays fully usable (§13).
 
 ## 7. Release-candidate sweep (per version)
 

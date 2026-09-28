@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Face } from "../data/types";
 import { PRESETS, type Preset } from "../data/presets";
 import { allFaces, refreshFaces } from "../data/face";
-import { deleteCachedFamily, downloadFont, installFont, uninstallFont, type InstallScope } from "../data/ipc";
+import { deleteCachedFamily, downloadFont, exportFont, installFont, uninstallFont, type InstallScope } from "../data/ipc";
 import { copyText, cssSnippet, forgetLocalFace, loadFace, specimenUrl } from "../lib/fonts";
 import { fmt, num, useI18n } from "../i18n";
 
@@ -336,6 +336,48 @@ function UninstallButton({ face }: { face: Face }) {
   );
 }
 
+/** M8 (§11/§26): export the family as a ZIP of its TTF/OTF files plus a
+    README manifest. Works offline (§26) — cached copy first, installed copy
+    as fallback. The destination is chosen by the backend (§31). */
+function ExportButton({ face }: { face: Face }) {
+  const t = useI18n();
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const out = await exportFont(face.id);
+      setDone(`${out.fileCount} ${out.fileCount === 1 ? t.filesOne : t.filesMany} · ${out.source === "cached" ? t.exportCached : t.exportInstalled}`);
+      await new Promise((r) => window.setTimeout(r, 1400));
+      setDone(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (done) {
+    return <span className="lab border border-verm px-3 py-2 text-verm">{t.exportedOk} {done}</span>;
+  }
+  return (
+    <span className="inline-flex flex-col gap-1">
+      <button
+        onClick={run}
+        disabled={busy}
+        title={t.export}
+        className="lab border border-ink px-3 py-2 text-warm transition-colors duration-150 hover:border-verm hover:text-verm"
+      >
+        {busy ? t.exporting : t.export}
+      </button>
+      {error && <span className="lab text-verm">{error}</span>}
+    </span>
+  );
+}
+
 /** M4 retrieval action: download + validate every weight of the family and
     cache it locally. Plain-browser dev has no download path, so this only
     renders in the Tauri runtime. Alt+C triggers it for the selected face. */
@@ -665,6 +707,14 @@ export default function Sheet({
         </div>
       </div>
 
+      {/* ————— §16: removed-from-source banner (state untouched) ————— */}
+      {face.removedFromSource && (
+        <div className="mt-8 border border-verm p-4">
+          <p className="lab text-verm">{t.removedBadge}</p>
+          <p className="lab mt-2 max-w-[62ch] text-warm">{t.removedNote}</p>
+        </div>
+      )}
+
       {/* ————— retrieval ————— */}
       <div className="mt-8 flex flex-wrap items-center gap-2">
         {face.phase === "online" && <CacheButton face={face} />}
@@ -675,6 +725,7 @@ export default function Sheet({
           </>
         )}
         {face.phase === "installed" && <UninstallButton face={face} />}
+        <ExportButton face={face} />
         <CopyBtn label={t.copyCss} doneLabel={t.copied} getText={() => cssSnippet(face.family, face.weights)} />
         <CopyBtn label={t.copyFamily} doneLabel={t.copied} getText={() => face.family} />
         <a

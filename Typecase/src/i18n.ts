@@ -154,6 +154,24 @@ const en = {
   extRemoved: "Removed ✓",
   extFrom: "from your user account — from this machine (administrator)",
 
+  /* M8 export / catalog refresh / removed-from-source (§11, §15, §16, §26) */
+  export: "⇩ Export ZIP",
+  exporting: "◔ Exporting…",
+  exportedOk: "Exported ✓",
+  exportCached: "cached copy",
+  exportInstalled: "installed copy",
+  refresh: "⟳ Check for catalog updates",
+  refreshing: "◔ Checking…",
+  refreshUpToDate: "Catalog is up to date ✓",
+  refreshAvailable: "Catalog update: $A new, $C updated, $R removed",
+  refreshApply: "Update catalog",
+  refreshDismiss: "Not now",
+  refreshApplied: "Catalog updated ✓",
+  refreshFailed: "Catalog check failed",
+  removedBadge: "Removed from Google Fonts",
+  removedNote:
+    "Google Fonts no longer lists this family. Your cached copy and any installation are untouched — you can still preview, install and export it. Export it to keep a backup.",
+
   /* presets — the editorial layer */
   presets: {
     essay: {
@@ -370,6 +388,24 @@ const es: Dict = {
   extConfirm: "Quitar tipografía",
   extRemoved: "Quitada ✓",
   extFrom: "de tu cuenta de usuario — de esta máquina (administrador)",
+
+  /* M8 exportar / actualizar catálogo / retiradas (§11, §15, §16, §26) */
+  export: "⇩ Exportar ZIP",
+  exporting: "◔ Exportando…",
+  exportedOk: "Exportada ✓",
+  exportCached: "copia en caché",
+  exportInstalled: "copia instalada",
+  refresh: "⟳ Buscar actualizaciones del catálogo",
+  refreshing: "◔ Comprobando…",
+  refreshUpToDate: "El catálogo está al día ✓",
+  refreshAvailable: "Actualización del catálogo: $A nuevas, $C actualizadas, $R retiradas",
+  refreshApply: "Actualizar catálogo",
+  refreshDismiss: "Ahora no",
+  refreshApplied: "Catálogo actualizado ✓",
+  refreshFailed: "Falló la comprobación del catálogo",
+  removedBadge: "Retirada de Google Fonts",
+  removedNote:
+    "Google Fonts ya no lista esta familia. Tu copia en caché y cualquier instalación no se tocan — puedes seguir previsualizándola, instalándola y exportándola. Expórtala para conservar una copia de seguridad.",
 
   presets: {
     essay: {

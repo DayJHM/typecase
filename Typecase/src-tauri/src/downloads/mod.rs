@@ -602,6 +602,7 @@ mod tests {
             note: String::new(),
             pairs_with: String::new(),
             popularity: 0,
+            removed_from_source: false,
         };
         assert_eq!(css2_url(&rec), "https://fonts.googleapis.com/css2?family=Inter:wght@100;400&display=swap");
         rec.italic = true;

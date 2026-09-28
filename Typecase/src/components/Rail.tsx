@@ -3,8 +3,10 @@ import type { Face } from "../data/types";
 import { fmt, useI18n } from "../i18n";
 import { loadFace } from "../lib/fonts";
 
-/** sets a row's name in its own face, loading the webfont only when it nears the viewport */
-function FaceName({ face }: { face: Face }) {
+/** sets a row's name in its own face, loading the webfont only when it nears the viewport.
+    `removed` (M8 §16) marks families the source no longer lists — metadata only. */
+function FaceName({ face, removed }: { face: Face; removed?: boolean }) {
+  const t = useI18n();
   const ref = useRef<HTMLSpanElement>(null);
   const [state, setState] = useState<"idle" | "loading" | "ok" | "error">("idle");
 
@@ -36,6 +38,11 @@ function FaceName({ face }: { face: Face }) {
       }}
     >
       {face.family}
+      {removed && (
+        <span className="lab ml-2 align-super text-[11px] text-verm" title={t.removedBadge}>
+          ✝
+        </span>
+      )}
     </span>
   );
 }
@@ -150,7 +157,7 @@ export default function Rail({
                       }`}
                       style={{ transformOrigin: "top" }}
                     />
-                    <FaceName face={f} />
+                    <FaceName face={f} removed={f.removedFromSource} />
                     <span className="mt-0.5 flex items-baseline justify-between gap-2">
                       <span className="lab truncate text-warm group-hover:text-ink">
                         {f.designer}

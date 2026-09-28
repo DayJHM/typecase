@@ -4,19 +4,31 @@ import Sheet from "./components/Sheet";
 import InstalledView from "./components/InstalledView";
 import Shell, { type View } from "./components/Shell";
 import { useFaces } from "./hooks/useFaces";
-import { PHASE_ORDER } from "./data/face";
+import { PHASE_ORDER, anyRemoved } from "./data/face";
 import { PRESETS } from "./data/presets";
 import type { Face } from "./data/types";
-import { useI18n } from "./i18n";
+import { applyCatalogRefresh, refreshCatalog, type CatalogDiffInfo } from "./data/ipc";
+import { fmt, useI18n } from "./i18n";
 
 export default function App() {
-  const { faces, loaded, error } = useFaces();
+  const { faces, loaded, error, reload } = useFaces();
   const t = useI18n();
   const [view, setView] = useState<View>("discover");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<Face["category"] | "All">("All");
   const [presetId, setPresetId] = useState("essay");
+
+  /* M8 §15: manual, user-controlled catalog refresh. The diff parks on the
+     backend; the notice below is dismissible — nothing applies without the
+     explicit “Update catalog” click. */
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshed, setRefreshed] = useState<"ok" | null>(null);
+  const [notice, setNotice] = useState<CatalogDiffInfo | null>(null);
+  const [noticeClosed, setNoticeClosed] = useState(false);
+  const [applyBusy, setApplyBusy] = useState(false);
+  const [refreshError, setRefreshError] = useState<string | null>(null);
+  const removedCount = anyRemoved();
 
   const preset = PRESETS.find((p) => p.id === presetId) ?? PRESETS[0];
 
@@ -65,6 +77,38 @@ export default function App() {
     if (view !== "discover" && f.phase !== view) setView(f.phase);
   };
 
+  const runRefresh = async () => {
+    setRefreshing(true);
+    setRefreshed(null);
+    setRefreshError(null);
+    setNoticeClosed(false);
+    try {
+      const diff = await refreshCatalog();
+      if (diff.unchanged) {
+        setRefreshed("ok");
+      } else {
+        setNotice(diff);
+      }
+    } catch (e) {
+      setRefreshError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const runApply = async () => {
+    setApplyBusy(true);
+    try {
+      await applyCatalogRefresh();
+      setNotice(null);
+      await reload();
+    } catch (e) {
+      setRefreshError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setApplyBusy(false);
+    }
+  };
+
   const emptyState =
     query.trim() === "" && cat === "All"
       ? view === "library"
@@ -94,6 +138,57 @@ export default function App() {
 
   return (
     <Shell view={view} onView={setView} counts={counts}>
+      {/* ——— M8 catalog actions: manual refresh (§15) + removed summary ——— */}
+      {loaded && (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-rule py-2">
+          {removedCount > 0 && (
+            <span className="lab text-verm" title={t.removedNote}>
+              ✝ {removedCount} {t.removedBadge}
+            </span>
+          )}
+          <button
+            onClick={runRefresh}
+            disabled={refreshing}
+            className="lab ml-auto text-warm transition-colors duration-150 hover:text-verm"
+          >
+            {refreshing ? t.refreshing : t.refresh}
+          </button>
+          {refreshed === "ok" && <span className="lab text-verm">{t.refreshUpToDate}</span>}
+          {refreshError && (
+            <span className="lab text-verm" title={refreshError}>
+              {t.refreshFailed}
+            </span>
+          )}
+        </div>
+      )}
+      {notice && !noticeClosed && (
+        <div className="mt-3 border border-ink p-4">
+          <p className="lab text-verm">
+            {fmt(t.refreshAvailable, { A: notice.added, C: notice.changed, R: notice.removed })}
+          </p>
+          {notice.addedNames.length > 0 && (
+            <p className="lab mt-1 text-warm">+ {notice.addedNames.join(", ")}</p>
+          )}
+          {notice.removedNames.length > 0 && (
+            <p className="lab mt-1 text-warm">− {notice.removedNames.join(", ")}</p>
+          )}
+          <div className="mt-3 flex items-center gap-3">
+            <button
+              onClick={runApply}
+              disabled={applyBusy}
+              className="lab border border-verm px-4 py-2 text-verm transition-colors duration-150 hover:bg-verm hover:text-paper"
+            >
+              {applyBusy ? t.refreshing : t.refreshApply}
+            </button>
+            <button
+              onClick={() => setNoticeClosed(true)}
+              className="lab border border-ink px-4 py-2 text-warm transition-colors duration-150 hover:bg-ink hover:text-paper"
+            >
+              {t.refreshDismiss}
+            </button>
+          </div>
+        </div>
+      )}
       {!loaded ? (
         <div className="pt-24 text-center">
           <p className="disp text-[34px] leading-tight">{t.opening}</p>
