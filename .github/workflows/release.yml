@@ -32,6 +32,11 @@ jobs:
             --dir dist
           find dist -type f | sort
 
+      # This job deliberately skips checkout — it only needs the downloaded
+      # artifacts. gh would otherwise look for a local git repo to resolve the
+      # target and fail ("fatal: not a git repository"), so every gh call
+      # names the repo explicitly; --verify-tag asserts the tag already exists
+      # rather than letting gh create one locally.
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -42,6 +47,8 @@ jobs:
             *-rc*) FLAGS="--prerelease" ;;
           esac
           gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
             $FLAGS \
             --title "Typecase ${TAG#v}" \
             --generate-notes \
