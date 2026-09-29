@@ -304,6 +304,27 @@ design. Two consequences recorded honestly: it is app code, so the
       13,394,432 B again — the same size as the rc.2 asset, as expected since
       no application code changed, with a different hash purely from the PE
       build timestamp.
+- [x] The launch itself is a build gate now (commit d57d8fd): every Windows
+      build launches the staged exe alone in an empty scratch directory and
+      requires the window titled from `tauri.conf.json` to appear
+      (`packaging/smoke-test-portable.ps1`, step `Smoke-test portable exe`). Green
+      on its first run, **36639793751**, and its log settles things the runner
+      image's "included software" list does not state:
+  - That image **does** provide the Evergreen runtime (`153.0.4234.48`) and runs
+    an **interactive session** (`UserInteractive=True`, session 2) — the two
+    preconditions a GUI smoke test needs, and the two reasons to expect it might
+    not work at all. Both were unknown before this run.
+  - The real window appeared **1 s** after launch while the scratch directory held
+    nothing but the copy of the exe, so "single file, run in place" is no longer
+    only a claim about the exe's import tables — it is an observed launch, on
+    Windows Server 2025. The script killed the process afterwards (pid 3676).
+  - `%LOCALAPPDATA%\Typecase` did **not** exist right after the window appeared:
+    the app creates its data root lazily. Recorded so checklist 7.6's "the paths
+    named in the README must be the ones the app actually creates" is read as *on
+    use* rather than *at startup* — a difference in when, not a documentation bug.
+  - The negative test ran in the same step: given a deliberately wrong expected
+    title the script reported the title it did see and exited 1, so the gate is
+    known able to fail rather than passing by construction.
 - [ ] The §7 VM pass itself (clean Windows 10 **and** Windows 11 VMs,
       install/uninstall, SmartScreen wording, reboot persistence, the missing
       runtime message, and §8 flows 1–3) is still outstanding — it is what
