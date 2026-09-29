@@ -8,6 +8,10 @@
    command errors, exactly like the M6 FontManager split. */
 
 use serde::{Deserialize, Serialize};
+use std::path::Path;
+
+/// §25 step 3 / §43 flow 3: Typecase-held copies of external fonts.
+pub mod cache;
 
 #[cfg(windows)]
 pub mod windows_imp;
@@ -28,6 +32,9 @@ pub struct ExternalFont {
     pub ownership: Ownership,
     /// Typecase face id for managed fonts; None otherwise.
     pub id: Option<String>,
+    /// §25 step 3: the cache id of the copy Typecase holds for this entry
+    /// (`ext-<slug>`, M9), or None when no copy has been made yet.
+    pub cached_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -113,20 +120,57 @@ pub fn classify(
     (Ownership::External, None)
 }
 
-/// Every registered font on this platform, classified against `records`.
+/// Every registered font on this platform, classified against `records` and
+/// annotated with the id of any copy Typecase already holds.
 /// Non-Windows platforms return an empty list (§42: no font management there).
 pub fn discover(
     records: &std::collections::HashMap<String, crate::fontmanager::InstallRecord>,
+    data_dir: &Path,
 ) -> Vec<ExternalFont> {
     #[cfg(windows)]
     {
-        windows_imp::discover(records)
+        let mut rows = windows_imp::discover(records);
+        annotate_cached(&mut rows, data_dir);
+        rows
     }
     #[cfg(not(windows))]
     {
-        let _ = records;
+        let _ = (records, data_dir);
         Vec::new()
     }
+}
+
+/// Attach the cache id of Typecase's own copy (§25 step 3) to each row, matched
+/// by registry value name — the same identity the M6 record path reverses by.
+/// Derived from the cache manifests, so a copy deleted outside Typecase simply
+/// stops being reported.
+pub fn annotate_cached(rows: &mut [ExternalFont], data_dir: &Path) {
+    let inventory = cache::inventory(data_dir);
+    for row in rows.iter_mut() {
+        row.cached_id = inventory.get(&row.value_name).cloned();
+    }
+}
+
+/// §31: caching accepts a value name and path from the UI, but only for a font
+/// Windows actually has registered. The triple is verified against live
+/// discovery before any file is read, so the command can never be turned into a
+/// generic copy interface (§30). Windows paths are case-insensitive, so the
+/// path is compared case-folded; value name and scope must match exactly.
+pub fn resolve_registered<'a>(
+    rows: &'a [ExternalFont],
+    value_name: &str,
+    file_path: &str,
+    scope: &str,
+) -> Result<&'a ExternalFont, String> {
+    rows.iter()
+        .find(|r| {
+            r.value_name == value_name && r.scope == scope && r.file_path.eq_ignore_ascii_case(file_path)
+        })
+        .ok_or_else(|| {
+            format!(
+                "{value_name} is not registered in Windows ({scope} scope) — only a font Windows has installed can be cached"
+            )
+        })
 }
 
 /// Remove one external font registration: delete the registry value and the
@@ -254,6 +298,76 @@ mod tests {
             parse_value_name("(TrueType)"),
             ("(TrueType)".into(), "Regular".into())
         );
+    }
+
+    fn external_row(value_name: &str, family: &str, path: &str, scope: &str) -> ExternalFont {
+        ExternalFont {
+            value_name: value_name.into(),
+            family: family.into(),
+            style: "Regular".into(),
+            file_path: path.into(),
+            scope: scope.into(),
+            ownership: Ownership::External,
+            id: None,
+            cached_id: None,
+        }
+    }
+
+    #[test]
+    fn cached_ids_come_from_the_cache_manifests() {
+        let dir = std::env::temp_dir().join(format!("typecase-annot-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+
+        let mut rows = vec![
+            external_row("Inter (TrueType)", "Inter", "C:\\W\\Inter.ttf", "user"),
+            external_row("Other (TrueType)", "Other", "C:\\W\\Other.ttf", "user"),
+        ];
+        // Nothing cached yet.
+        annotate_cached(&mut rows, &dir);
+        assert!(rows.iter().all(|r| r.cached_id.is_none()));
+
+        // A real copy makes exactly its own row report the cache id.
+        let src = dir.join("Inter.ttf");
+        let mut payload = vec![0x00u8, 0x01, 0x00, 0x00];
+        payload.resize(1_500, 0);
+        std::fs::write(&src, &payload).unwrap();
+        let owner = external_row("Inter (TrueType)", "Inter", src.to_str().unwrap(), "user");
+        cache::cache_registered(&dir, &owner).unwrap();
+        annotate_cached(&mut rows, &dir);
+        assert_eq!(rows[0].cached_id.as_deref(), Some("ext-inter"));
+        assert_eq!(rows[1].cached_id, None);
+
+        // The payload rides the wire as cachedId.
+        let json = serde_json::to_value(&rows[0]).unwrap();
+        assert_eq!(json["cachedId"], "ext-inter");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn resolve_registered_verifies_the_exact_triple() {
+        let rows = vec![
+            external_row("Inter (TrueType)", "Inter", "C:\\Windows\\Fonts\\Inter.ttf", "user"),
+            external_row("Inter (TrueType)", "Inter", "C:\\Windows\\Fonts\\Inter.ttf", "system"),
+        ];
+        // The discovered triple resolves.
+        assert!(resolve_registered(&rows, "Inter (TrueType)", "C:\\Windows\\Fonts\\Inter.ttf", "user")
+            .is_ok());
+        // Scope disambiguates the same value name.
+        assert!(resolve_registered(&rows, "Inter (TrueType)", "C:\\Windows\\Fonts\\Inter.ttf", "system")
+            .is_ok());
+        // Windows paths are case-insensitive.
+        assert!(resolve_registered(&rows, "Inter (TrueType)", "c:\\windows\\fonts\\inter.TTF", "user")
+            .is_ok());
+        // A path that is not what the registry says is refused (§31): the
+        // command cannot be pointed at an arbitrary file.
+        let err = resolve_registered(&rows, "Inter (TrueType)", "C:\\Users\\t\\secrets.ttf", "user")
+            .unwrap_err();
+        assert!(err.contains("not registered"), "unexpected error: {err}");
+        // Unknown fonts and unknown scopes are refused too.
+        assert!(resolve_registered(&rows, "Nope (TrueType)", "C:\\Windows\\Fonts\\Inter.ttf", "user").is_err());
+        assert!(resolve_registered(&rows, "Inter (TrueType)", "C:\\Windows\\Fonts\\Inter.ttf", "elsewhere").is_err());
+        assert!(resolve_registered(&[], "Inter (TrueType)", "C:\\Windows\\Fonts\\Inter.ttf", "user").is_err());
     }
 
     #[test]

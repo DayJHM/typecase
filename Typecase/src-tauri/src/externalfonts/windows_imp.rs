@@ -129,6 +129,9 @@ pub fn discover(
                 scope: label.to_string(),
                 ownership,
                 id,
+                // §25 step 3: filled in by `super::discover` from the cache
+                // manifests — the registry knows nothing about our copies.
+                cached_id: None,
             });
         }
     }

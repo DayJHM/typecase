@@ -149,7 +149,16 @@ const en = {
   extBody:
     "This typeface was installed outside Typecase ($S). Other applications and documents may depend on it — removing it affects the whole machine, not just Typecase. The registry entry and its file will be deleted.",
   extCacheOffer:
-    "Typecase cannot offer to cache this font yet; export a copy before removing it if you want a backup.",
+    "Typecase can keep its own copy of this font first — a local backup that survives removing it from Windows.",
+  extCache: "⤓ Keep a copy",
+  extCaching: "◔ Saving…",
+  extCached: "Copy kept ✓",
+  extCacheLab: "Typecase's copy of this font",
+  extCacheDrop: "✕ Discard copy",
+  extCacheTitle: "Discard Typecase's copy of $F?",
+  extCacheBody:
+    "Typecase deletes its own copy and nothing else. The font registered in Windows is not touched — this is not a removal.",
+  extCacheConfirm: "Discard copy",
   extConfirm: "Remove typeface",
   extRemoved: "Removed ✓",
   extFrom: "from your user account — from this machine (administrator)",
@@ -384,7 +393,16 @@ const es: Dict = {
   extBody:
     "Esta tipografía se instaló fuera de Typecase ($S). Otras aplicaciones y documentos pueden depender de ella — quitarla afecta a toda la máquina, no solo a Typecase. Se eliminarán la entrada del registro y su archivo.",
   extCacheOffer:
-    "Typecase aún no puede ofrecer guardar esta fuente; exporta una copia antes de quitarla si quieres una copia de seguridad.",
+    "Typecase puede guardar antes su propia copia de esta fuente — una copia de seguridad local que sobrevive a quitarla de Windows.",
+  extCache: "⤓ Guardar una copia",
+  extCaching: "◔ Guardando…",
+  extCached: "Copia guardada ✓",
+  extCacheLab: "Copia de Typecase de esta fuente",
+  extCacheDrop: "✕ Descartar copia",
+  extCacheTitle: "¿Descartar la copia de Typecase de $F?",
+  extCacheBody:
+    "Typecase elimina su propia copia y nada más. La fuente registrada en Windows no se toca — esto no es la eliminación.",
+  extCacheConfirm: "Descartar copia",
   extConfirm: "Quitar tipografía",
   extRemoved: "Quitada ✓",
   extFrom: "de tu cuenta de usuario — de esta máquina (administrador)",

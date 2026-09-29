@@ -68,12 +68,63 @@ no Typecase record — the file is typically outside our cache) requires:
 System-scope removal elevates through the same one-shot helper as M6
 (`--typecase-elevated-uninstall-external <valueName> <path>`).
 
+§25 step 3 (offer caching/export first) is now **implemented**: the dialog
+offers **Keep a copy** before the confirmation is given, backed by
+`cache_external_font` — see §6. It replaced the earlier "link the Export
+story" stand-in, which was never actionable (export needs a catalog family,
+and an external font has no catalog id), so `extCacheOffer` used to admit
+that no copy could be made.
+
 ## 5. What M7 deliberately does NOT do
 
 - Content-hash matching for `unknown`/dedup (§18 machinery exists; the UI and
   matching policy are a later milestone).
-- Importing external fonts into the Typecase cache (`cache_external_font`,
-  §25 step 3) — the dialog links the existing Export story instead; import
-  lands with M8's export/backup work.
 - Non-registry font sources (per-machine GDI Enumeration of
   not-registered fonts), WOFF/TTC (§12).
+
+## 6. External font caching (`cache_external_font`) — landed after M9's RC
+
+**Why.** §25 requires the removal flow to offer a copy first and §43 flow 3
+ends with "user may cache it"; without it, removing an external font simply
+deletes the only copy on the machine. Recorded as the one open deviation in
+M9_DISTRIBUTION_DESIGN.md §6 before this landed.
+
+**Decisions.**
+
+- **Storage reuses the ordinary cache tree**: `fonts/ext-<slug>/<sha8>.<ttf|otf>`
+  plus a `metadata.json` that keeps M4's core fields (`id`, `family`, `files[]`
+  with a numeric weight and the CSS-valid `normal`/`italic`) and adds
+  provenance (`source: "external-windows"`, per-file `valueName`,
+  `registryStyle`). Reusing the layout means the §31 path rules, the
+  content-addressed filename shape and the M5 `font://` serving path all apply
+  unchanged, so a preserved copy is usable rather than a dead file. §28: no
+  second storage subsystem.
+- **Identity**: `ext-<family-slug>` in the §31 slug charset, so an external
+  copy can never be confused with a provider family id; the command refuses if
+  the derived id would collide with a catalog family. The *manifest source tag*,
+  not the prefix, is what makes an entry external.
+- **Only registered fonts are cacheable** (§30/§31): the caller passes the
+  value name + path + scope it saw in the Installed view, and the backend
+  verifies that exact triple against live discovery
+  (`externalfonts::resolve_registered`) before reading anything. Windows paths
+  compare case-folded; the value name and scope must match exactly.
+- **Same validation as a download**: `downloads::validate_sfnt_bytes` (size
+  bounds + sfnt magic) and `sha256_hex`, staged through `staging/` and renamed
+  into place, so an interrupted copy never looks like a valid entry.
+- **Idempotent and family-aware**: re-caching unchanged bytes rewrites nothing;
+  caching a second style merges into the same family manifest; re-caching a
+  font the user replaced in Windows updates that registry entry's file and
+  deletes the superseded one instead of accumulating orphans.
+- **Deletion** stays explicit (§24): `delete_cached_family` accepts an
+  external-copy id (it has no library state to check) and the Installed row
+  offers **Discard copy** behind a confirmation that says the Windows font is
+  untouched.
+
+**Verification.** Logic-level only, on Linux: `cargo test --locked` 81 passed
+(+12: id charset, style inversion against `fontmanager::style_name`, manifest
+write/merge/replacement, rejection of non-fonts/too-small/managed/missing
+files, inventory, triple verification, corrupt-manifest handling) plus
+`npm run typecheck` and `npm run build`. Windows registry behaviour is
+**not** claimed from Linux (§38) — it needs the WINDOWS_VALIDATION §6.7 item
+in a VM session, which must run on a build at or after this change (the
+`v0.1.0-rc.1` binaries predate it).

@@ -48,6 +48,7 @@ pub fn run() {
             commands::install_font,
             commands::uninstall_font,
             commands::get_installed_fonts,
+            commands::cache_external_font,
             commands::remove_external_font,
             commands::refresh_catalog,
             commands::apply_catalog_refresh,

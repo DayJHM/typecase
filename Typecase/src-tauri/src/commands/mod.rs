@@ -159,6 +159,11 @@ pub struct DeleteOutcome {
 /// the cached flag; installed/ownership state is preserved —
 /// installed-but-missing-locally is a valid §17 state. The UI asks for
 /// explicit confirmation before invoking this.
+///
+/// M9 addition: a Typecase-held copy of an EXTERNAL font (§25 step 3) lives in
+/// the same cache tree but has no library state, so the explicit operation is
+/// allowed for an id whose manifest is tagged external. Provider families keep
+/// the cached-flag requirement — deletion is never implicit.
 #[tauri::command]
 pub fn delete_cached_family(
     state: State<TypecaseState>,
@@ -166,20 +171,23 @@ pub fn delete_cached_family(
 ) -> Result<DeleteOutcome, String> {
     #[cfg(debug_assertions)]
     eprintln!("[typecase] delete_cached_family: {id}");
+    let external = crate::externalfonts::cache::CachedExternal::read(&state.data_dir, &id).is_some();
     // Validate before touching anything: the operation targets an existing cache.
-    {
+    if !external {
         let states = state.states.lock().expect("library mutex poisoned");
         if !states.get(&id).is_some_and(|s| s.cached) {
             return Err(format!("{id} is not cached"));
         }
     }
     let freed = crate::downloads::delete_cached_dir(&state.data_dir, &id)?;
-    let snapshot = {
-        let mut states = state.states.lock().expect("library mutex poisoned");
-        crate::downloads::clear_cached_state(&mut states, &id)?;
-        states.clone()
-    };
-    state.store.save(&snapshot)?;
+    if !external {
+        let snapshot = {
+            let mut states = state.states.lock().expect("library mutex poisoned");
+            crate::downloads::clear_cached_state(&mut states, &id)?;
+            states.clone()
+        };
+        state.store.save(&snapshot)?;
+    }
     Ok(DeleteOutcome { id, freed_bytes: freed })
 }
 
@@ -315,14 +323,68 @@ pub fn uninstall_font(state: State<TypecaseState>, id: String) -> Result<Install
     })
 }
 
+/// Live Windows font discovery (both scopes), classified by ownership and
+/// annotated with any Typecase-held copy (§25 step 3). The Installed view and
+/// the external-cache command read the same rows, so a font can only be cached
+/// if it is one the user is actually looking at.
+fn installed_rows(state: &TypecaseState) -> Vec<crate::externalfonts::ExternalFont> {
+    let records = state.installs.lock().expect("install mutex poisoned");
+    crate::externalfonts::discover(&records, &state.data_dir)
+}
+
 /// M7: every font registered in Windows (both scopes), classified by
 /// ownership against Typecase's install records (§19–20).
 #[tauri::command]
 pub fn get_installed_fonts(
     state: State<TypecaseState>,
 ) -> Result<Vec<crate::externalfonts::ExternalFont>, String> {
-    let records = state.installs.lock().expect("install mutex poisoned");
-    Ok(crate::externalfonts::discover(&records))
+    Ok(installed_rows(&state))
+}
+
+/// §25 step 3 / §43 flow 3: keep Typecase's own copy of an EXTERNAL font, so a
+/// font installed outside Typecase can be preserved before it is removed from
+/// Windows (and so the removal dialog can offer a copy *before* the warning
+/// rather than pointing at an export that does not exist for it).
+///
+/// Only a font Windows actually has registered can be cached: the value name,
+/// path and scope are verified against live discovery first (§31), so the
+/// command is never a generic file-copy interface (§30). The copy is validated
+/// with the M4 rules and stored content-addressed under fonts/ext-<slug>/.
+#[tauri::command]
+pub fn cache_external_font(
+    state: State<TypecaseState>,
+    value_name: String,
+    file_path: String,
+    scope: String,
+) -> Result<crate::externalfonts::cache::CacheOutcome, String> {
+    #[cfg(debug_assertions)]
+    eprintln!("[typecase] cache_external_font: {value_name} scope={scope}");
+    let scope = match scope.as_str() {
+        "user" => Scope::User,
+        "system" => Scope::System,
+        other => return Err(format!("unknown scope: {other}")),
+    };
+    let rows = installed_rows(&state);
+    let entry = crate::externalfonts::resolve_registered(
+        &rows,
+        &value_name,
+        &file_path,
+        scope_str(scope),
+    )?
+    .clone();
+
+    // The copy lands beside provider families in one cache tree, so the derived
+    // id must not shadow one: refuse rather than mix a catalog family's cache.
+    let cache_id = crate::externalfonts::cache::cache_id(&entry.family);
+    {
+        let catalog = state.catalog.read().expect("catalog rwlock poisoned");
+        if catalog.get(&cache_id).is_some() {
+            return Err(format!(
+                "{cache_id} is already a catalog family — refusing to share its cache directory"
+            ));
+        }
+    }
+    crate::externalfonts::cache::cache_registered(&state.data_dir, &entry)
 }
 
 /// M7: remove an EXTERNAL font (no Typecase record) after the UI's explicit

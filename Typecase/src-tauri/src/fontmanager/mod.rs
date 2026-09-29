@@ -67,6 +67,38 @@ pub fn value_name(family: &str, weight: u16, style: &str) -> String {
     }
 }
 
+/// Inverse of `style_name` for the style tokens Windows value names carry:
+/// "Regular", "Bold", "Italic", "Bold Italic", "300", "900 Italic". Used by
+/// the external-font cache (M9) to store a copy with M4 semantics (a numeric
+/// weight plus the CSS-valid "normal"/"italic"), while the registry spelling
+/// stays in the manifest as provenance. Unrecognized tokens degrade to
+/// (400, "normal") — M7's parser already mapped those to "Regular", so this
+/// keeps the round-trip honest instead of inventing a weight.
+pub fn parse_style_name(name: &str) -> (u16, &'static str) {
+    let n = name.trim();
+    if n == "Italic" {
+        return (400, "italic");
+    }
+    if let Some(weight) = n.strip_suffix(" Italic") {
+        return (parse_weight(weight).unwrap_or(400), "italic");
+    }
+    match parse_weight(n) {
+        Some(weight) => (weight, "normal"),
+        None => (400, "normal"),
+    }
+}
+
+fn parse_weight(tok: &str) -> Option<u16> {
+    match tok {
+        "Regular" => Some(400),
+        "Bold" => Some(700),
+        "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900" => {
+            tok.parse().ok()
+        }
+        _ => None,
+    }
+}
+
 /// Installed filename: "<Family> <Style>.ttf". Sanitized — family/style names
 /// are data, never allowed to become path segments (§31).
 pub fn installed_file_name(family: &str, weight: u16, style: &str) -> String {
@@ -242,6 +274,30 @@ mod tests {
             installed_file_name("A:B<C>D", 700, "italic"),
             "ABCD Bold Italic.ttf"
         );
+    }
+
+    #[test]
+    fn parse_style_name_inverts_style_name() {
+        // Every token style_name can emit must round-trip.
+        for (weight, style) in [
+            (400u16, "normal"),
+            (700, "normal"),
+            (400, "italic"),
+            (700, "italic"),
+            (300, "normal"),
+            (900, "italic"),
+        ] {
+            let token = style_name(weight, style);
+            assert_eq!(parse_style_name(&token), (weight, style), "token {token}");
+        }
+        // Windows spellings that arrive from the registry.
+        assert_eq!(parse_style_name("Regular"), (400, "normal"));
+        assert_eq!(parse_style_name("Bold"), (700, "normal"));
+        assert_eq!(parse_style_name("Italic"), (400, "italic"));
+        assert_eq!(parse_style_name("Bold Italic"), (700, "italic"));
+        // Unknown/absent tokens degrade instead of guessing.
+        assert_eq!(parse_style_name(""), (400, "normal"));
+        assert_eq!(parse_style_name("SemiBold"), (400, "normal"));
     }
 
     #[test]

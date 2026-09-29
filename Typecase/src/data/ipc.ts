@@ -119,11 +119,36 @@ export interface RegisteredFont {
   scope: "user" | "system";
   ownership: Ownership;
   id: string | null;
+  /** §25 step 3: the id of the copy Typecase holds for this font, or null. */
+  cachedId: string | null;
 }
 
 export async function fetchInstalledFonts(): Promise<RegisteredFont[]> {
   if (!isTauri()) return [];
   return invoke<RegisteredFont[]>("get_installed_fonts");
+}
+
+/** §25 step 3 / §43 flow 3: keep Typecase's own copy of an EXTERNAL font.
+    The backend verifies the font really is registered in Windows before
+    reading anything (§31) and stores a validated, content-addressed copy; the
+    frontend never supplies a destination. */
+export interface ExternalCacheOutcome {
+  id: string;
+  family: string;
+  file: string;
+  size: number;
+  sha256: string;
+  fileCount: number;
+  alreadyCached: boolean;
+}
+
+export async function cacheExternalFont(
+  valueName: string,
+  filePath: string,
+  scope: "user" | "system"
+): Promise<ExternalCacheOutcome> {
+  if (!isTauri()) throw new Error("Caching requires the Tauri runtime");
+  return invoke<ExternalCacheOutcome>("cache_external_font", { valueName, filePath, scope });
 }
 
 /** M7 §25: remove an EXTERNAL font (never a managed one — the backend

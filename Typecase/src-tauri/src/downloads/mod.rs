@@ -38,11 +38,38 @@ pub fn magic_kind(bytes: &[u8]) -> Option<SfntKind> {
     }
 }
 
-fn ext(kind: SfntKind) -> &'static str {
+pub fn sfnt_ext(kind: SfntKind) -> &'static str {
     match kind {
         SfntKind::Ttf => "ttf",
         SfntKind::Otf => "otf",
     }
+}
+
+/// §31 content validation for an in-memory font payload: size bounds + sfnt
+/// magic, returning the container kind. The network pipeline applies the same
+/// bounds while streaming; the external-font copy path (M9 §25 step 3) applies
+/// them here, so a cached file can never be something other than a real
+/// TTF/OTF of a plausible size.
+pub fn validate_sfnt_bytes(bytes: &[u8]) -> Result<SfntKind, String> {
+    let len = bytes.len() as u64;
+    if len < MIN_FILE_BYTES {
+        return Err(format!(
+            "file too small: {len} bytes ({MIN_FILE_BYTES} minimum)"
+        ));
+    }
+    if len > MAX_FILE_BYTES {
+        return Err(format!("file too large: {len} bytes"));
+    }
+    magic_kind(bytes).ok_or_else(|| "not a TTF/OTF font (bad sfnt signature)".to_string())
+}
+
+/// Lowercase-hex sha256 of an in-memory payload — the same content-addressing
+/// digest the download pipeline computes while streaming, exposed for callers
+/// that already hold the bytes (external-copy validation).
+pub fn sha256_hex(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hex::encode(hasher.finalize())
 }
 
 /* ---- CSS2 response parsing ---- */
@@ -284,7 +311,7 @@ pub fn download_all(
     for ((tmp, weight, style), face) in staged_paths.iter().zip(faces.iter()) {
         match download_file(client, &face.url, tmp) {
             Ok((size, hash, kind)) => {
-                let name = format!("{}.{}", &hash[..8], ext(kind));
+                let name = format!("{}.{}", &hash[..8], sfnt_ext(kind));
                 outcome.staged.push((tmp.clone(), data_dir.join(FONTS_DIR).join(&rec.id).join(&name), hash.clone(), *weight));
                 outcome.files.push(CacheFileMeta {
                     file: name,
@@ -809,6 +836,43 @@ mod tests {
         assert!(!st.cached && st.installed);
         assert_eq!(st.managed_by_typecase, Some(true));
         assert_eq!(st.install_scope, Some(crate::library::model::Scope::User));
+    }
+
+    /* ---- §31 content validation shared with the external-copy path ---- */
+
+    #[test]
+    fn validate_sfnt_bytes_accepts_real_shapes_and_rejects_others() {
+        let mut ttf = vec![0x00u8, 0x01, 0x00, 0x00];
+        ttf.resize(2_000, 0);
+        assert_eq!(validate_sfnt_bytes(&ttf), Ok(SfntKind::Ttf));
+        assert_eq!(sfnt_ext(SfntKind::Ttf), "ttf");
+
+        let mut otf = b"OTTO".to_vec();
+        otf.resize(2_000, 0);
+        assert_eq!(validate_sfnt_bytes(&otf), Ok(SfntKind::Otf));
+        assert_eq!(sfnt_ext(SfntKind::Otf), "otf");
+
+        // Wrong magic (a PNG, a text file) is refused even at a valid size.
+        let mut png = vec![0x89u8, b'P', b'N', b'G'];
+        png.resize(2_000, 0);
+        assert!(validate_sfnt_bytes(&png).unwrap_err().contains("sfnt"));
+        // Size bounds: too small, too large.
+        assert!(validate_sfnt_bytes(&[0x00, 0x01, 0x00, 0x00]).unwrap_err().contains("too small"));
+        let mut huge = vec![0x00u8, 0x01, 0x00, 0x00];
+        huge.resize((MAX_FILE_BYTES + 1) as usize, 0);
+        assert!(validate_sfnt_bytes(&huge).unwrap_err().contains("too large"));
+        assert!(validate_sfnt_bytes(&[]).is_err());
+    }
+
+    #[test]
+    fn sha256_hex_is_lowercase_and_stable() {
+        // Known vector: sha256("") = e3b0c442...
+        let h = sha256_hex(b"");
+        assert_eq!(h.len(), 64);
+        assert!(h.starts_with("e3b0c44298fc1c14"));
+        assert!(h.chars().all(|c| c.is_ascii_digit() || ('a'..='f').contains(&c)));
+        assert_eq!(sha256_hex(b"inter-400"), sha256_hex(b"inter-400"));
+        assert_ne!(sha256_hex(b"a"), sha256_hex(b"b"));
     }
 
     #[test]

@@ -139,6 +139,22 @@ These gate the FontManager milestone; none may be claimed done from Linux.
   applying; refresh again → **Update catalog** → counts move and the app
   serves the refreshed catalog. Offline: the button reports failure
   honestly and the app stays fully usable (§13).
+- [ ] **6.7 [M9]** External-font copy (§25 step 3, §43 flow 3): on an external
+  row, **⤓ Keep a copy** → the row badges **Copy kept ✓** and
+  `%LOCALAPPDATA%\Typecase\fonts\ext-<family-slug>\` holds the TTF/OTF under
+  its content-addressed name plus a `metadata.json` whose `source` is
+  `external-windows` and whose file entry records the registry value name
+  (`dir /s /b %LOCALAPPDATA%\Typecase\fonts`). The button also appears inside
+  the removal dialog and is offered **before** the confirmation. Re-running it
+  changes nothing (idempotent); caching a second style of the same family
+  adds a second file to the same directory. **✕ Discard copy** asks for
+  confirmation, then removes the directory and returns the row to the
+  offer state — the font in Windows must be untouched (verify in
+  `shell:fonts`). Errors to expect and record honestly: a non-font file
+  registered as a font is refused as "not a TTF/OTF font", and the copy of a
+  font whose file was deleted outside Typecase fails with "cannot read".
+  Restart Typecase: the badge persists (it is read from the manifests, not
+  from memory).
 
 ## 7. Release-candidate sweep (per version)
 
@@ -157,6 +173,12 @@ These gate the FontManager milestone; none may be claimed done from Linux.
   app launches and behaves identically; `%LOCALAPPDATA%\Typecase\` is the data
   root exactly as for the installed build (shared by design,
   M9_DISTRIBUTION_DESIGN.md §2); WebView2 requirement holds on 1809+.
+- [ ] **7.7** Sweep the **right build**: `v0.1.0-rc.1`'s binaries predate the
+  external-font cache change (M9_DISTRIBUTION_DESIGN.md §6), so items **6.7**
+  and §8 flow 3 need a build at or after it — tag a later RC for the final
+  sweep, or build locally from `main`
+  (`npm run tauri build -- --bundles nsis,msi`). Record which build the
+  session log belongs to.
 
 ---
 
@@ -164,7 +186,7 @@ These gate the FontManager milestone; none may be claimed done from Linux.
 
 ```text
 Windows validation <date> — <Windows edition/version> — build <artifact id>
-Items passed: 1.1–1.4, 2.1–2.6, 3.1–3.3, 4.1–4.5, 5.1–5.8, 6.1–6.6, 7.1–7.6
+Items passed: 1.1–1.4, 2.1–2.6, 3.1–3.3, 4.1–4.5, 5.1–5.8, 6.1–6.7, 7.1–7.7
 Items deferred (feature not yet implemented): none (see deviations)
 Deviations: <none or list>
 Evidence: typecase-evidence-<date>.zip
@@ -197,11 +219,13 @@ remains → installed copy remains → user can preview/install/export it.
 **Flow 3 — external font.** External font exists → Typecase discovers it →
 shows it as externally installed → user may cache it → requests uninstall →
 warned about external ownership → explicit confirmation.
-→ **6.1, 6.2 (+ 6.2b)**. Recorded deviation: "cache it" is **not
-implemented** (§29 `cache_external_font`; the removal dialog says so via
-`extCacheOffer`) — §25's export-first offer (export a copy before removing)
-is the validated substitute; log it as a deviation, never claim the step.
+→ **6.1, 6.2 (+ 6.2b), 6.7**. The step is now implemented, not a deviation:
+**Keep a copy** is offered on the row and inside the removal dialog before the
+warning is confirmed (§25 step 3), stores a validated copy under
+`fonts/ext-<slug>/`, and can be discarded deliberately. Capture the copy on
+disk and the row badge as its evidence; the deviation recorded in earlier
+revisions of this file is closed by M7_EXTERNAL_FONTS_DESIGN.md §6.
 
-Release-candidate gate: **7.1–7.6** on a clean snapshot **plus flows 1–3**
+Release-candidate gate: **7.1–7.7** on a clean snapshot **plus flows 1–3**
 above constitute the stage-10 test pass; the permanent release assets live
 on the `v*` tag's GitHub release, not in aging run artifacts.

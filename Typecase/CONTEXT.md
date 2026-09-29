@@ -1408,10 +1408,16 @@ M9  DONE*     Distribution (assessment stage 10): portable + installer +
               design. Release job publishes NSIS+MSI+portable+checklist as
               permanent assets (-rc tags → prerelease). No code signing
               (§7.2 records unsigned) and no auto-updater (§42) by decision.
-              §43 acceptance mapping added as WINDOWS_VALIDATION §8; flow-3
-              "cache external font" recorded there as an unimplemented
-              deviation (§29 cache_external_font; extCacheOffer copy is
-              honest). release.yml is now exercised: tag v0.1.0-rc.1
+              §43 acceptance mapping added as WINDOWS_VALIDATION §8. Flow-3's
+              "cache external font" deviation was then closed in code: §29
+              cache_external_font exists (M7_EXTERNAL_FONTS_DESIGN.md §6) —
+              ext-<slug> ids in the ordinary fonts tree, manifest source
+              "external-windows", M4 validation rules, copies deletable via
+              delete_cached_family — and the removal dialog now offers a real
+              copy before the warning (§25 step 3). That is app code landing
+              after the RC, so the v0.1.0-rc.1 binaries predate it and the
+              §7/§8 VM sweep must run on a later RC.
+              release.yml is now exercised: tag v0.1.0-rc.1
               (commit 6dcd87d) published release 398720167 with
               prerelease:true and all four assets (NSIS 3.65 MB, MSI
               5.00 MB, portable 13.30 MB raw exe, checklist 12 KB) — run
