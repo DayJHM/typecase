@@ -140,11 +140,12 @@ windows-ci and release builds would invite drift in the subtle parts
   checklist §7.2/§7.3 captures the real SmartScreen wording).
 - Auto-updater (§42: not requested; Tauri updater plugin exists if ever).
 - USB-stick data-local portable mode (§2 above).
-- App code changes, with one deliberate exception: closing the §6 gap
-  (external-font caching) is app code and landed *after* the RC. It touches
-  nothing the distribution design decides, but it does mean the
-  `v0.1.0-rc.1` binaries are not what `main` builds — the §7/§8 VM sweep must
-  run on a later RC (see §7).
+- App code changes, with two deliberate exceptions, both landed after
+  `v0.1.0-rc.1` and therefore carried by `v0.1.0-rc.2`: closing the §6 gap
+  (external-font caching) and the startup-failure reporting in §2b. Neither
+  touches what the distribution design decides (no signing, no updater,
+  no arm64), but they do mean the rc.1 binaries are not what `main` builds —
+  the §7/§8 VM sweep must run on rc.2 or later (see §7).
 
 ## 6. §43 acceptance mapping
 
@@ -160,8 +161,7 @@ confirmed (§25 step 3), and the Installed row badges the copy and can discard
 it deliberately (§24). The §8 mapping now points at checklist item 6.7
 instead of a deviation, and M7_EXTERNAL_FONTS_DESIGN.md §6 records the
 design. Two consequences recorded honestly: it is app code, so the
-`v0.1.0-rc.1` binaries do not contain it (the VM sweep needs a later RC), and
-its Windows behaviour is still unverified from Linux (§38).
+`v0.1.0-rc.1` binaries do not contain it (the VM sweep needs a later RC), and      its Windows behaviour is still unverified from Linux (§38).
 
 ## 7. Verification record
 
@@ -209,7 +209,45 @@ its Windows behaviour is still unverified from Linux (§38).
       **not** verified here (§38) — checklist item 6.7 covers it in the VM
       session. The commit hash and a fresh RC run are recorded when the next
       tag is cut (§4).
-- [ ] The §7 VM pass itself (clean Windows VM, install/uninstall, SmartScreen
-      wording, reboot persistence, plus §8 flows 1–3 on a build that includes
-      the external-cache change) is still outstanding — it is what gates
-      `v0.1.0`, not the RC.
+- [x] §2b landed and verified to CI: `webviewInstallMode` stated explicitly
+      and the startup-failure message added (`src/startup.rs`). `cargo test
+      --locked` 83 passed (+2), `npm run typecheck`, `npm run build`, YAML lint
+      of all three workflows; windows-ci green — run 36561462210 (commit
+      cf3741e), the push that first exercised the new packaging step.
+- [x] §2a portable package checked **from the artifact**, not from the
+      workflow text (run 36561462210): `typecase-windows-portable` held
+      `Typecase-portable.exe` and `Typecase-portable-x64.zip`, and the zip
+      contained exactly the exe plus `README.txt` with the version (0.1.0),
+      the WebView2 URL and the revision (`main @ cf3741e`) substituted. The
+      package's own integrity chain holds on the released copy: the README's
+      declared SHA-256 equals the hash of the exe inside the zip *and* of the
+      standalone `Typecase-portable.exe` asset
+      (`30111020e09776338006be58eba668da952e86337cee2cec1094d5c7b07722c8`),
+      and the zip is byte-identical between artifact and release
+      (`80e7ca5c54f268d03165726eaf4163974705bfcd6382287417db337dacc69994`).
+- [x] Single-file portability checked on the **shipped** binary instead of
+      inferred from source: `objdump -p Typecase-portable.exe` lists only OS
+      imports (kernel32, user32, gdi32, advapi32, shell32, shlwapi, ole32,
+      oleaut32, combase, comctl32, imm32, dwmapi, ws2_32, bcrypt,
+      bcryptprimitives, ntdll and the api-ms-win-crt / api-ms-win-core API
+      sets), with no `WebView2Loader.dll` import and no such string in the
+      file — confirming the static `WebView2LoaderStatic` link in §2b. Worth
+      recording for anyone verifying downloads: **each build run produces a
+      different exe hash** (the PE header carries a build timestamp), so the
+      README's digest is only meaningful for the zip it ships in, which is
+      exactly how it is generated.
+- [x] Second release candidate exercised: tag `v0.1.0-rc.2` (annotated tag
+      object c28f9fa, commit cf3741e), run 36562035995 with `build/windows` and
+      `release` both success including the full network tier, publishing
+      https://github.com/DayJHM/typecase/releases/tag/v0.1.0-rc.2 —
+      `prerelease: true`, `draft: false`, **five** assets:
+      `Typecase_0.1.0_x64-setup.exe` (3,665,102 B),
+      `Typecase_0.1.0_x64_en-US.msi` (5,033,984 B),
+      `Typecase-portable.exe` (13,394,432 B),
+      `Typecase-portable-x64.zip` (4,917,453 B, `application/zip`) and
+      `WINDOWS_VALIDATION.md` (15,696 B). **rc.2 supersedes rc.1 for the
+      sweep** — rc.1 predates both the external cache and the packaging.
+- [ ] The §7 VM pass itself (clean Windows 10 **and** Windows 11 VMs,
+      install/uninstall, SmartScreen wording, reboot persistence, the missing
+      runtime message, and §8 flows 1–3) is still outstanding — it is what
+      gates `v0.1.0`, not the RC. Items 7.6–7.10 on the rc.2 build.

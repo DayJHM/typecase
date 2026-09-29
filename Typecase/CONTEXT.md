@@ -1435,7 +1435,19 @@ M9  DONE*     Distribution (assessment stage 10): portable + installer +
               36501073516 green, full network tier included (see
               M9_DISTRIBUTION_DESIGN.md §7; two release-job fixes: gh
               needs --repo without a checkout, and artifacts must be
-              flattened to files before upload). DONE* pending only the
+              flattened to files before upload). A second candidate followed:
+              tag v0.1.0-rc.2 (commit cf3741e) published with prerelease:true
+              and five assets — NSIS 3.67 MB, MSI 5.03 MB, portable exe
+              13.39 MB, portable zip 4.92 MB (exe + README), checklist
+              15.7 KB — run 36562035995 green including the full network
+              tier, and push run 36561462210 exercised the new packaging step.
+              The package was verified from the artifact, not from the
+              workflow text (the README's declared sha256 equals the exe it
+              ships with, and the zip is byte-identical between artifact and
+              release), and single-file portability was confirmed with
+              objdump -p on the released exe (OS imports only — no
+              WebView2Loader.dll, matching the static loader link).
+              rc.2 is the build for the sweep. DONE* pending only the
               §7/§8 VM test pass gating v0.1.0.
 ```
 
