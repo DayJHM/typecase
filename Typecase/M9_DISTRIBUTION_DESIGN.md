@@ -105,6 +105,21 @@ Typecase-portable-x64.zip
   deliberately **no pre-flight runtime probe**: only a real startup failure
   speaks, so a machine whose probe would have been wrong is never told it is
   broken. Elevated helper children return before this path (§23).
+- **And now that it launches.** Reading headers proves a static property; it
+  cannot prove the exe comes up, which is what a user actually buys. Every build
+  therefore launches the staged exe — alone in an empty scratch directory, which
+  doubles as "single file, run in place" — and requires the window titled from
+  `tauri.conf.json` to appear within 60 s (`packaging/smoke-test-portable.ps1`).
+  Asserting the *configured title* rather than "a window appeared" is load
+  bearing: the startup-failure dialog described above is also titled
+  "Typecase …" and blocks until dismissed, so a looser check would pass on
+  precisely the failure it exists to catch, and a "wait for exit" check would
+  hang the job. On failure the step prints what it saw — exit code, the window
+  title seen, the WebView2 runtime version in every registry scope, whether the
+  session was interactive, and recent Application event-log entries — which is
+  the closest a headless runner gets to the console a `windows_subsystem` binary
+  does not have. It runs before the package is built, so a binary that cannot
+  start is never packaged, and tag builds inherit it through `release.yml`.
 - Still the recorded **later** option (§35: "a portable executable does not
   imply portable data"): a data-beside-the-exe mode. The shared
   `%LOCALAPPDATA%\Typecase\` root is unchanged, and the package README states

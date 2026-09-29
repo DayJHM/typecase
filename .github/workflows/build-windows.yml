@@ -139,6 +139,50 @@ jobs:
           # the guard checked the exe and rejected a bad allow list.
           exit 0
 
+      # Tier-1 half of WINDOWS_VALIDATION.md 7.1/7.8. The import guard above
+      # proves the exe needs nothing beside it; it cannot prove the exe starts. A
+      # panic, a missing WebView2 runtime or a window that never initialises all
+      # give a process that dies or stalls, and a windows-subsystem binary prints
+      # nothing here to say why. The script is in the repo so the assertion and
+      # the diagnostics are reviewable, and it asserts the *configured* window
+      # title: the startup-failure dialog is titled "Typecase ... startup failed"
+      # and blocks until dismissed, so a looser "a window appeared" check would
+      # pass on the very failure this step exists to catch.
+      - name: Smoke-test portable exe (window comes up)
+        shell: pwsh
+        timeout-minutes: 4
+        run: |
+          $root = $env:GITHUB_WORKSPACE
+          $smoke = "$root/Typecase/packaging/smoke-test-portable.ps1"
+          $exe = "$root/Typecase-portable.exe"
+          # The title is read from the file the app is built from, so the check
+          # cannot drift from the app.
+          $title = (Get-Content "$root/Typecase/src-tauri/tauri.conf.json" -Raw |
+            ConvertFrom-Json).app.windows[0].title
+
+          pwsh -NoProfile -ExecutionPolicy Bypass -File $smoke -Exe $exe -ExpectedWindowTitle $title
+          if ($LASTEXITCODE -ne 0) {
+            throw "the portable exe did not come up (exit $LASTEXITCODE)"
+          }
+
+          # Negative test, as for the import guard: this script must reject a
+          # launch it did not observe, or it proves nothing about the runs it
+          # claims to validate. A wrong expected title cannot match, so five
+          # seconds are enough — the point is the verdict, not the wait.
+          pwsh -NoProfile -ExecutionPolicy Bypass -File $smoke -Exe $exe `
+            -ExpectedWindowTitle 'Not the Typecase main window' -TimeoutSeconds 5
+          $code = $LASTEXITCODE
+          if ($code -eq 0) {
+            throw "the smoke test passed with a wrong expected window title — it cannot fail"
+          }
+          "Negative test passed: a wrong window title is rejected (exit $code)"
+
+          # The negative test left a non-zero $LASTEXITCODE and the pwsh shell
+          # wrapper exits the step with it (run 36635488776), so reset it here:
+          # reaching this line means the exe came up and the negative test was
+          # rejected.
+          exit 0
+
       # The package is the verified exe plus a README stating the supported
       # systems, the WebView2 requirement, where data lives and how to verify the
       # download. The wording lives in the repo

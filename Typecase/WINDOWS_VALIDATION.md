@@ -159,7 +159,12 @@ These gate the FontManager milestone; none may be claimed done from Linux.
 ## 7. Release-candidate sweep (per version)
 
 - [ ] **7.1** Both installers (NSIS + MSI) from the CI artifact install and
-  launch on a **clean** VM snapshot (no dev tooling installed).
+  launch on a **clean** VM snapshot (no dev tooling installed). The portable
+  exe's launch is already covered in CI on every build — title, timing and
+  WebView2 version asserted and printed by
+  `packaging/smoke-test-portable.ps1` (`Smoke-test portable exe`) — so this item
+  is about the *installer* path and about a real desktop session, neither of
+  which the runner exercises.
 - [ ] **7.2** `Get-Item ...\typecase.exe | Get-AuthenticodeSignature` — signing
   status recorded (unsigned for now; note it).
 - [ ] **7.3** Windows Defender/SmartScreen reaction to the unsigned binary is
@@ -195,7 +200,10 @@ These gate the FontManager milestone; none may be claimed done from Linux.
   exits non-zero instead of vanishing silently. Capture the dialog. Reinstall
   the runtime and confirm the app then starts normally. Also try the same on a
   machine that **has** the runtime: no dialog must appear (the check is not a
-  pre-flight probe; it speaks only after a real failure).
+  pre-flight probe; it speaks only after a real failure). The twin case is
+  automated: on a runner without the runtime the app blocks on this very dialog,
+  so the smoke-test step fails and prints the runtime version it could not find
+  — read that output before suspecting the change under test.
 - [ ] **7.9 [M9]** Portable means runnable in place: run the exe from a
   location it cannot write to (mounted ISO, read-only share, write-protected
   USB). It must start and work, writing only to `%LOCALAPPDATA%\Typecase\` —
