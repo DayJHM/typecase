@@ -170,14 +170,17 @@ These gate the FontManager milestone; none may be claimed done from Linux.
   checklist ticked, deviations logged in CONTEXT.md §45.
 - [ ] **7.6 [M9]** Portable client: the run publishes **two** portable
   artifacts — the bare `Typecase-portable.exe` and the package
-  `Typecase-portable-x64.zip` (exe + `README.txt`). Run `Typecase-portable.exe`
-  directly (no install) on a clean VM → the app launches and behaves
-  identically; `%LOCALAPPDATA%\Typecase\` is the data root exactly as for the
-  installed build (shared by design, M9_DISTRIBUTION_DESIGN.md §2); the
-  WebView2 requirement holds on 1809+. Unzip the package and check the README
-  against reality: the stated SHA-256 must match
-  `Get-FileHash Typecase-portable.exe -Algorithm SHA256`, and the data-root
-  paths named in it must be the ones the app actually creates.
+  `Typecase-portable-x64.zip` (exe + `README.txt`). CI already enforces the
+  load-time half of this on every build (the exe's import tables must name only
+  Windows DLLs — `packaging/verify-portable-imports.ps1`), so this item
+  confirms it on a real OS rather than discovering it.
+  Run `Typecase-portable.exe` directly (no install) on a clean VM → the app
+  launches and behaves identically; `%LOCALAPPDATA%\Typecase\` is the data root
+  exactly as for the installed build (shared by design,
+  M9_DISTRIBUTION_DESIGN.md §2); the WebView2 requirement holds on 1809+.
+  Unzip the package and check the README against reality: the stated SHA-256
+  must match `Get-FileHash Typecase-portable.exe -Algorithm SHA256`, and the
+  data-root paths named in it must be the ones the app actually creates.
 - [ ] **7.7** Sweep the **right build**: `v0.1.0-rc.1`'s binaries predate both
   the external-font cache change (M9_DISTRIBUTION_DESIGN.md §6) and the
   portable packaging (§2a), so items **6.7**, **7.6**, **7.8** and §8 flow 3

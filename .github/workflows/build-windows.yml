@@ -84,7 +84,7 @@ jobs:
       # webviewInstallMode in tauri.conf.json names the installer strategy
       # explicitly). It shares the installed build's per-user data root by
       # design (M9_DISTRIBUTION_DESIGN.md §2; checklist §7.6).
-      - name: Stage portable exe + package
+      - name: Stage portable exe
         shell: pwsh
         run: |
           $root = $env:GITHUB_WORKSPACE
@@ -99,13 +99,48 @@ jobs:
           Copy-Item $exe.FullName "$root/Typecase-portable.exe"
           "Staged portable: $($exe.Name) ($([math]::Round($exe.Length/1MB,1)) MB)"
 
-          # The package is the exe plus a README stating the supported systems,
-          # the WebView2 requirement, where data lives and how to verify the
-          # download. The wording lives in the repo
-          # (Typecase/packaging/portable-README.txt) so it is reviewable and
-          # diffable instead of buried in this workflow. Single file only: the
-          # WebView2 loader is statically linked and the frontend + catalog are
-          # embedded, so no DLL belongs beside it (M9_DISTRIBUTION_DESIGN.md §2).
+      # Portability guard (M9_DISTRIBUTION_DESIGN.md §2). The portable build is
+      # one self-contained file — run from a USB stick or Downloads folder with
+      # nothing beside it — because the WebView2 loader is linked statically, the
+      # frontend and catalog are embedded, and installers cover the WebView2
+      # runtime. A new dependency would put a sibling DLL back in the
+      # requirements without breaking any other check, so the exe's import
+      # tables are read and compared against the Windows DLLs. The walk lives in
+      # the repo (Typecase/packaging/verify-portable-imports.ps1) so the allow
+      # list is reviewable in a diff.
+      - name: Verify portable exe is self-contained (imports Windows DLLs only)
+        shell: pwsh
+        run: |
+          $guard = "$env:GITHUB_WORKSPACE/Typecase/packaging/verify-portable-imports.ps1"
+          $exe = "$env:GITHUB_WORKSPACE/Typecase-portable.exe"
+
+          # The real check, against the Windows DLL allow list.
+          pwsh -NoProfile -ExecutionPolicy Bypass -File "$guard" -Path "$exe"
+          if ($LASTEXITCODE -ne 0) {
+            throw "the portable exe imports something other than Windows DLLs (exit $LASTEXITCODE)"
+          }
+
+          # Negative test: the same guard must reject a DLL it does not allow.
+          # Without this the check could break at the comparison and pass every
+          # build — a guard that cannot fail is worse than no guard.
+          $output = & pwsh -NoProfile -ExecutionPolicy Bypass -File "$guard" -Path "$exe" `
+            -AllowList 'kernel32.dll' 2>&1
+          $code = $LASTEXITCODE
+          $output | Select-Object -First 2 | ForEach-Object { "  guard said: $_" }
+          if ($code -eq 0) {
+            throw "the guard passed an allow list that omits 24 of the imports — it cannot fail"
+          }
+          "Negative test passed: a restricted allow list is rejected (exit $code)"
+
+      # The package is the verified exe plus a README stating the supported
+      # systems, the WebView2 requirement, where data lives and how to verify the
+      # download. The wording lives in the repo
+      # (Typecase/packaging/portable-README.txt) so it is reviewable and
+      # diffable instead of buried in this workflow.
+      - name: Package portable build (exe + README)
+        shell: pwsh
+        run: |
+          $root = $env:GITHUB_WORKSPACE
           $hash = (Get-FileHash "$root/Typecase-portable.exe" -Algorithm SHA256).Hash.ToLower()
           $version = (Get-Content "$root/Typecase/src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json).version
           $rev = "$env:GITHUB_REF_NAME @ $($env:GITHUB_SHA.Substring(0,7))"

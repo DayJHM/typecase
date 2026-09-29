@@ -81,6 +81,22 @@ Typecase-portable-x64.zip
   snapshot, and `tauri.conf.json` declares no `resources`/`externalBin`. So no
   DLL ships beside the exe — the machine-level dependency is the WebView2
   *runtime*, nothing else.
+- **That property is now enforced, not merely true.** It held only because of
+  how three dependencies happen to be configured, and nothing in the build would
+  have noticed it changing: a new Cargo feature, a crate linking its own loader,
+  or a Tauri release that stops using the static loader would put a sibling DLL
+  back in the requirements, and the exe would still compile, still package, and
+  still pass every other check — breaking only on a user's machine that lacks the
+  DLL. Every Windows build therefore reads the exe's import tables — the import
+  directory **and** the delay-import directory, since a delay-loaded DLL is a
+  real runtime dependency that never appears in the first — and fails unless
+  every DLL is on an explicit list of Windows components. The walk lives in the
+  repository (`Typecase/packaging/verify-portable-imports.ps1`, ~25 allowed
+  names, all OS-supplied) so additions are reviewable in a diff, and it needs no
+  toolchain (no `dumpbin`), so it runs in the same job as the build. The step
+  also runs the guard a second time against a deliberately restricted allow list
+  and requires it to **fail**, because a guard whose comparison silently broke
+  would pass every build and prove nothing.
 - **A failed start now says so.** `typecase_lib::run()` returns its error
   instead of panicking, and `src/startup.rs` turns it into an actionable
   message (naming the WebView2 runtime as the likely cause, with the download
