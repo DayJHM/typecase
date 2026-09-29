@@ -10,3 +10,8 @@ src-tauri/gen/schemas
 npm-debug.log*
 .dev-log.txt
 .vite-log.txt
+
+# Downloaded CI artifacts (portable exe/zips, screenshots); never committed.
+# Anchored to this directory so it cannot shadow a source folder named
+# "artifacts" elsewhere in the tree.
+/artifacts/
