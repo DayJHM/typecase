@@ -32,6 +32,17 @@ jobs:
             --dir dist
           find dist -type f | sort
 
+      # upload-artifact preserves the matched paths' common ancestor, so the
+      # installer artifact unpacks as <artifact>/nsis/*.exe and
+      # <artifact>/msi/*.msi. Flatten every artifact tree into one directory so
+      # gh uploads files, not the nsis/msi subdirectories it would otherwise
+      # pick up from a one-level glob ("read .../msi: is a directory").
+      - name: Stage release assets
+        run: |
+          mkdir -p assets
+          find dist -type f -exec cp -v {} assets/ \;
+          ls -l assets
+
       # This job deliberately skips checkout — it only needs the downloaded
       # artifacts. gh would otherwise look for a local git repo to resolve the
       # target and fail ("fatal: not a git repository"), so every gh call
@@ -46,12 +57,15 @@ jobs:
           case "$TAG" in
             *-rc*) FLAGS="--prerelease" ;;
           esac
+          # Idempotent for re-runs and re-pushed tags: drop a prior release for
+          # this tag first, but never the tag itself (the push that triggered
+          # this run owns it).
+          gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes \
+            --cleanup-tag=false 2>/dev/null || true
           gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --verify-tag \
             $FLAGS \
             --title "Typecase ${TAG#v}" \
             --generate-notes \
-            dist/typecase-windows-installers/* \
-            dist/typecase-windows-portable/* \
-            dist/windows-validation-checklist/*
+            assets/*
