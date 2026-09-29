@@ -159,8 +159,13 @@ jobs:
           # cannot drift from the app.
           $title = (Get-Content "$root/Typecase/src-tauri/tauri.conf.json" -Raw |
             ConvertFrom-Json).app.windows[0].title
+          $shot = "$root/Typecase-portable-screenshot.png"
 
-          pwsh -NoProfile -ExecutionPolicy Bypass -File $smoke -Exe $exe -ExpectedWindowTitle $title
+          # The screenshot is asserted on inside the script (a window that never
+          # painted is a flat rectangle), so a run that produces no image or a
+          # blank one fails here rather than quietly uploading nothing useful.
+          pwsh -NoProfile -ExecutionPolicy Bypass -File $smoke -Exe $exe `
+            -ExpectedWindowTitle $title -ScreenshotPath $shot
           if ($LASTEXITCODE -ne 0) {
             throw "the portable exe did not come up (exit $LASTEXITCODE)"
           }
@@ -182,6 +187,18 @@ jobs:
           # reaching this line means the exe came up and the negative test was
           # rejected.
           exit 0
+
+      # `always()` because the screenshot is the evidence for the step above: on a
+      # failure it is exactly what someone needs to see, and GitHub skips ordinary
+      # steps once one has failed. A missing file warns rather than fails, so this
+      # step never becomes a second, confusing red herring.
+      - name: Upload portable screenshot
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: typecase-portable-screenshot
+          path: Typecase-portable-screenshot.png
+          if-no-files-found: warn
 
       # The package is the verified exe plus a README stating the supported
       # systems, the WebView2 requirement, where data lives and how to verify the

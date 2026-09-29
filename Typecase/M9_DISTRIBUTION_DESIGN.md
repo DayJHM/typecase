@@ -120,6 +120,18 @@ Typecase-portable-x64.zip
   the closest a headless runner gets to the console a `windows_subsystem` binary
   does not have. It runs before the package is built, so a binary that cannot
   start is never packaged, and tag builds inherit it through `release.yml`.
+- **The run also captures the window, and asserts on the capture.** A title check
+  still cannot tell "a window exists" from "the UI drew something", so each build
+  photographs the app window (PNG, published per build as
+  `typecase-portable-screenshot`, `always()` so a failure ships its own evidence)
+  and requires the image to carry real content: a window that came up but never
+  painted is a flat rectangle, and fewer than 16 distinct sampled colours is
+  treated as exactly that failure — while still writing the blank image out. Two
+  capture paths are attempted because neither is reliable alone for a WebView2
+  window: `PrintWindow` with `PW_RENDERFULLCONTENT` (reads the window's own
+  composition surface, occlusion-blind, the one that normally works for a
+  DirectComposition surface) and a straight desktop capture (needs a visible
+  window in an interactive session, which the runner has).
 - Still the recorded **later** option (§35: "a portable executable does not
   imply portable data"): a data-beside-the-exe mode. The shared
   `%LOCALAPPDATA%\Typecase\` root is unchanged, and the package README states

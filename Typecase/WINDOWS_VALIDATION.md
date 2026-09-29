@@ -164,7 +164,10 @@ These gate the FontManager milestone; none may be claimed done from Linux.
   WebView2 version asserted and printed by
   `packaging/smoke-test-portable.ps1` (`Smoke-test portable exe`) — so this item
   is about the *installer* path and about a real desktop session, neither of
-  which the runner exercises.
+  which the runner exercises. Every build also publishes
+  `typecase-portable-screenshot` — the app's window as rendered, asserted to
+  contain content — so a layout or rendering regression shows up in the artifact
+  list without waiting for a VM session.
 - [ ] **7.2** `Get-Item ...\typecase.exe | Get-AuthenticodeSignature` — signing
   status recorded (unsigned for now; note it).
 - [ ] **7.3** Windows Defender/SmartScreen reaction to the unsigned binary is

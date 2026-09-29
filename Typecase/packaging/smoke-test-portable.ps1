@@ -27,9 +27,16 @@
   Application event-log entries - because a windows-subsystem binary prints
   nothing to the job console.
 
+  With -ScreenshotPath the window is captured (PNG) and the capture is *asserted
+  on*, not merely attached. A window that came up but never painted - the webview
+  failing to initialise, which no title check can see - is a flat rectangle, so a
+  capture with fewer than -ScreenshotMinColours distinct colours fails, and the
+  blank image is still written out as the evidence for that failure.
+
   Usage:
     pwsh -NoProfile -ExecutionPolicy Bypass -File packaging/smoke-test-portable.ps1 `
-      -Exe <exe> -ExpectedWindowTitle <title> [-TimeoutSeconds 60]
+      -Exe <exe> -ExpectedWindowTitle <title> [-TimeoutSeconds 60] `
+      [-ScreenshotPath <png>]
 
   Exits 0 when the configured window appears, 1 otherwise.
 #>
@@ -37,7 +44,12 @@
 param(
     [Parameter(Mandatory = $true)][string] $Exe,
     [Parameter(Mandatory = $true)][string] $ExpectedWindowTitle,
-    [int] $TimeoutSeconds = 60
+    [int] $TimeoutSeconds = 60,
+
+    # Optional: capture the window here and require it to look like something.
+    [string] $ScreenshotPath,
+    [int] $ScreenshotTimeoutSeconds = 30,
+    [int] $ScreenshotMinColours = 16
 )
 
 $ErrorActionPreference = 'Stop'
@@ -50,6 +62,168 @@ if ([string]::IsNullOrWhiteSpace($ExpectedWindowTitle)) {
     throw 'smoke test: -ExpectedWindowTitle is required'
 }
 $exe = (Get-Item -LiteralPath $Exe).FullName
+
+# --- screenshot support --------------------------------------------------------
+#
+# Set up only when a path was given: the negative test (a deliberately wrong
+# expected title) asks for no image and must not depend on image support.
+#
+# Two capture methods, because neither is reliable alone for a WebView2 window:
+# PrintWindow with PW_RENDERFULLCONTENT (0x2) reads the window's own composition
+# surface and does not care whether the window is occluded or even on screen,
+# while CopyFromScreen reads the desktop and therefore needs a visible window in
+# an interactive session. PrintWindow is the one that normally works for a
+# DirectComposition surface, but black and partial captures are a known failure
+# mode, so the caller tries both until one yields an image with content.
+if ($ScreenshotPath) {
+    try {
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+    } catch {
+        throw "the screenshot assertion needs System.Drawing, which this PowerShell host lacks: $($_.Exception.Message)"
+    }
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+public static class TypecaseWindow
+{
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool GetWindowRect(IntPtr hwnd, out RECT rect);
+
+    [DllImport("user32.dll")]
+    public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdc, uint flags);
+
+    [DllImport("user32.dll")]
+    public static extern bool SetForegroundWindow(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    public static extern bool ShowWindow(IntPtr hwnd, int command);
+}
+'@
+}
+
+# Parameters here are deliberately untyped: a type constraint on
+# [System.Drawing.Bitmap] would make the whole script unloadable on a host
+# without that assembly, including the negative path that needs no screenshot.
+function Get-WindowBitmap {
+    param($Hwnd, $Method)
+
+    $rect = New-Object 'TypecaseWindow+RECT'
+    if (-not [TypecaseWindow]::GetWindowRect($Hwnd, [ref]$rect)) {
+        throw 'GetWindowRect failed for the app window'
+    }
+    $width = $rect.Right - $rect.Left
+    $height = $rect.Bottom - $rect.Top
+    if ($width -le 0 -or $height -le 0) {
+        throw "the app window has no usable size ($width x $height)"
+    }
+
+    $bitmap = New-Object System.Drawing.Bitmap($width, $height, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    try {
+        if ($Method -eq 'printwindow') {
+            $hdc = $graphics.GetHdc()
+            try {
+                if (-not [TypecaseWindow]::PrintWindow($Hwnd, $hdc, 0x2)) {
+                    throw 'PrintWindow returned false'
+                }
+            } finally {
+                $graphics.ReleaseHdc($hdc)
+            }
+        } else {
+            $size = New-Object System.Drawing.Size($width, $height)
+            $graphics.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $size, [System.Drawing.CopyPixelOperation]::SourceCopy)
+        }
+    } finally {
+        $graphics.Dispose()
+    }
+    return $bitmap
+}
+
+# Sampled on a grid, not read pixel by pixel: enough to tell a painted window
+# from a flat one without walking 1.3 M pixels through PowerShell.
+function Measure-WindowColours {
+    param($Bitmap)
+
+    $colours = New-Object 'System.Collections.Generic.HashSet[int]'
+    $stepX = [Math]::Max(1, [int]($Bitmap.Width / 64))
+    $stepY = [Math]::Max(1, [int]($Bitmap.Height / 64))
+    for ($y = 0; $y -lt $Bitmap.Height; $y += $stepY) {
+        for ($x = 0; $x -lt $Bitmap.Width; $x += $stepX) {
+            [void]$colours.Add($Bitmap.GetPixel($x, $y).ToArgb())
+        }
+    }
+    return $colours.Count
+}
+
+function Save-WindowScreenshot {
+    param($Hwnd, $Path, [int] $TimeoutSeconds = 30, [int] $MinColours = 16)
+
+    $dir = Split-Path -Parent -Path $Path
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    }
+
+    # PrintWindow does not need the window on top; the desktop capture does.
+    [void][TypecaseWindow]::ShowWindow($Hwnd, 9)
+    [void][TypecaseWindow]::SetForegroundWindow($Hwnd)
+    Start-Sleep -Milliseconds 500
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $attempt = 0
+    $bestColours = 0
+    $bestMethod = 'none'
+    while ($true) {
+        $attempt++
+        $final = (Get-Date) -ge $deadline
+        foreach ($method in @('printwindow', 'screen')) {
+            $bitmap = $null
+            try {
+                $bitmap = Get-WindowBitmap -Hwnd $Hwnd -Method $method
+            } catch {
+                Write-Host "  capture via ${method}: $($_.Exception.Message)"
+                continue
+            }
+            try {
+                $colours = Measure-WindowColours -Bitmap $bitmap
+                if ($colours -gt $bestColours) {
+                    $bestColours = $colours
+                    $bestMethod = $method
+                }
+                if ($colours -ge $MinColours) {
+                    $bitmap.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
+                    return [pscustomobject]@{
+                        Path     = $Path
+                        Colours  = $colours
+                        Method   = $method
+                        Attempts = $attempt
+                        Bytes    = (Get-Item -LiteralPath $Path).Length
+                    }
+                }
+                if ($final) {
+                    # The blank image is the evidence for this failure, so keep it.
+                    $bitmap.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
+                    throw ("the app window never painted anything: best {0} distinct colour(s) via {1} after {2} attempt(s), expected at least {3}; the capture is saved at {4}" -f
+                           $bestColours, $bestMethod, $attempt, $MinColours, $Path)
+                }
+            } finally {
+                if ($bitmap) { $bitmap.Dispose() }
+            }
+        }
+        if ($final) { break }
+        Start-Sleep -Seconds 1
+    }
+    throw "could not capture the app window at all after $attempt attempt(s)"
+}
 
 # Microsoft documents the Evergreen WebView2 runtime under this client id, in
 # the 32-bit registry view (and per-user for a per-user install). If none of
@@ -95,6 +269,8 @@ Write-Host "  interactive=$([Environment]::UserInteractive) session=$((Get-Proce
 
 $proc = $null
 $title = $null
+$shot = $null
+$captureError = $null
 $verdict = 'no-window'
 try {
     $proc = Start-Process -FilePath $runExe -WorkingDirectory $scratch -PassThru
@@ -125,6 +301,17 @@ try {
             if ($title -eq $ExpectedWindowTitle) { $verdict = 'ok'; break }
         }
     }
+
+    # Still inside the try: the window and its process must be alive to capture.
+    if ($verdict -eq 'ok' -and $ScreenshotPath) {
+        try {
+            $shot = Save-WindowScreenshot -Hwnd $proc.MainWindowHandle -Path $ScreenshotPath `
+                -TimeoutSeconds $ScreenshotTimeoutSeconds -MinColours $ScreenshotMinColours
+            Write-Host "  screenshot: $($shot.Bytes) bytes, $($shot.Colours) distinct colours via $($shot.Method) on attempt $($shot.Attempts)"
+        } catch {
+            $captureError = $_.Exception.Message
+        }
+    }
 } finally {
     if ($proc -and -not $proc.HasExited) {
         # /T so the WebView2 child processes go down with it
@@ -140,8 +327,11 @@ try {
 
 $elapsed = [int](((Get-Date) - $started).TotalSeconds)
 
-if ($verdict -eq 'ok') {
+if ($verdict -eq 'ok' -and -not $captureError) {
     Write-Host "OK: the portable client came up on its own - '$title' appeared after $elapsed s with nothing beside the exe." -ForegroundColor Green
+    if ($shot) {
+        Write-Host "  screenshot: $($shot.Path) - $($shot.Bytes) bytes, $($shot.Colours) distinct colours, via $($shot.Method)"
+    }
     $dataRoot = Join-Path -Path $env:LOCALAPPDATA -ChildPath 'Typecase'
     if (Test-Path -LiteralPath $dataRoot) {
         Write-Host "  data root created: $dataRoot"
@@ -152,22 +342,27 @@ if ($verdict -eq 'ok') {
 }
 
 Write-Host ''
-Write-Host 'FAILED: the portable client did not come up.' -ForegroundColor Red
-if ($verdict -eq 'exited') {
-    Write-Host ('  the process exited by itself after {0} s with code {1} (0x{1:X})' -f $elapsed, $proc.ExitCode)
+if ($verdict -eq 'ok') {
+    Write-Host 'FAILED: the window came up, but nothing was painted in it.' -ForegroundColor Red
+    Write-Host "  $captureError"
 } else {
-    Write-Host "  still running after $TimeoutSeconds s, but no window was ever shown"
-}
-if ($title) {
-    Write-Host "  window title seen: '$title'"
-    if ($title -match 'startup failed') {
-        Write-Host '  that is the startup-failure dialog: the app could not create its webview, which on'
-        Write-Host '  a runner normally means the WebView2 runtime is missing or broken (checklist 7.8).'
+    Write-Host 'FAILED: the portable client did not come up.' -ForegroundColor Red
+    if ($verdict -eq 'exited') {
+        Write-Host ('  the process exited by itself after {0} s with code {1} (0x{1:X})' -f $elapsed, $proc.ExitCode)
     } else {
-        Write-Host "  expected exactly: '$ExpectedWindowTitle'"
+        Write-Host "  still running after $TimeoutSeconds s, but no window was ever shown"
     }
-} else {
-    Write-Host "  no window appeared at all (expected '$ExpectedWindowTitle')"
+    if ($title) {
+        Write-Host "  window title seen: '$title'"
+        if ($title -match 'startup failed') {
+            Write-Host '  that is the startup-failure dialog: the app could not create its webview, which on'
+            Write-Host '  a runner normally means the WebView2 runtime is missing or broken (checklist 7.8).'
+        } else {
+            Write-Host "  expected exactly: '$ExpectedWindowTitle'"
+        }
+    } else {
+        Write-Host "  no window appeared at all (expected '$ExpectedWindowTitle')"
+    }
 }
 Write-Host "  WebView2: $(Get-WebView2Info)"
 Write-Host "  interactive=$([Environment]::UserInteractive) session=$((Get-Process -Id $PID).SessionId)"
