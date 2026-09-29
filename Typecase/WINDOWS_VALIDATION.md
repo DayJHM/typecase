@@ -167,7 +167,10 @@ These gate the FontManager milestone; none may be claimed done from Linux.
   which the runner exercises. Every build also publishes
   `typecase-portable-screenshot` — the app's window as rendered, asserted to
   contain content — so a layout or rendering regression shows up in the artifact
-  list without waiting for a VM session.
+  list without waiting for a VM session. Note its caveat: the runner's display is
+  smaller than the window the app asks for (the capture measures 1044x788 against
+  a configured 1280x832), so it is evidence about *content*, not about layout at
+  full size.
 - [ ] **7.2** `Get-Item ...\typecase.exe | Get-AuthenticodeSignature` — signing
   status recorded (unsigned for now; note it).
 - [ ] **7.3** Windows Defender/SmartScreen reaction to the unsigned binary is

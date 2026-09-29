@@ -199,6 +199,9 @@ function Save-WindowScreenshot {
                     $bestColours = $colours
                     $bestMethod = $method
                 }
+                if ($colours -lt $MinColours -and -not $final) {
+                    Write-Host "  capture via ${method}: only $colours distinct colour(s), trying the next method"
+                }
                 if ($colours -ge $MinColours) {
                     $bitmap.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
                     return [pscustomobject]@{

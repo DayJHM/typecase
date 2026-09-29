@@ -337,6 +337,25 @@ design. Two consequences recorded honestly: it is app code, so the
   - The negative test ran in the same step: given a deliberately wrong expected
     title the script reported the title it did see and exited 1, so the gate is
     known able to fail rather than passing by construction.
+- [x] The screenshot half is green and its image was checked here, not taken on
+      trust (commit 8406896, run **36641841622**):
+  - The artifact `typecase-portable-screenshot` is 22,222 B holding a 28,912 B
+    PNG, 1044x788. Decoding it locally rather than eyeballing a colour count:
+    **3,028 distinct colours**, 85.1% white, 4.4% black, plus `#EEEEEE` and
+    `#F3F3F3` chrome, with 760 of 788 rows carrying more than three colours and a
+    28-colour first row. That is a rendered UI — a window that never painted would
+    be one flat colour — so "the interface drew something" is now evidence rather
+    than an assumption.
+  - The capture came from the **desktop** path on attempt 1, which means the
+    `PrintWindow` path did not clear the content threshold: WebView2 renders
+    through DirectComposition and the black/partial-capture failure mode here is
+    the documented one. So the two-method design paid for itself on its first run,
+    and the log line added afterwards says which method fell short and why.
+  - The window measured **1044x788** while `tauri.conf.json` asks for 1280x832:
+    the runner's virtual display is smaller than the window the app requests, so
+    the image reflects a smaller viewport than a real desktop. Worth knowing
+    before reading the artifact as layout evidence — the *content* assertion is
+    unaffected, but a responsive-layout judgement would not be.
 - [ ] The §7 VM pass itself (clean Windows 10 **and** Windows 11 VMs,
       install/uninstall, SmartScreen wording, reboot persistence, the missing
       runtime message, and §8 flows 1–3) is still outstanding — it is what
