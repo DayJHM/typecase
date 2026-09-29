@@ -263,6 +263,32 @@ design. Two consequences recorded honestly: it is app code, so the
       `Typecase-portable-x64.zip` (4,917,453 B, `application/zip`) and
       `WINDOWS_VALIDATION.md` (15,696 B). **rc.2 supersedes rc.1 for the
       sweep** — rc.1 predates both the external cache and the packaging.
+- [x] The single-file property moved from *checked by hand* (previous bullet)
+      to *enforced on every build*: `packaging/verify-portable-imports.ps1`
+      reads the released-style exe's import and delay-import tables and fails
+      unless every DLL is on the explicit Windows-component allow list (commit
+      20feaaa). Two things about how it was validated are worth keeping:
+  - **The walk agrees with objdump across builds.** Run 36635488776 (first
+    exercise, commit 20feaaa) printed all 25 distinct names on the CI-built
+    exe — identical to the `objdump -p` set from the released rc.2 asset —
+    reporting `Import table: RVA 0xC47BE4, 26 DLL(s)` (26 descriptors, 25
+    distinct: `advapi32.dll` appears twice) and `Delay imports: none (no
+    delay-import directory)`, then `OK`. So the guard passed on merits, not by
+    finding nothing, and the allow list is complete rather than merely
+    unviolated.
+  - **The negative test earned its place immediately.** That same run's step
+    went red *after* both assertions held: the deliberately-failing second
+    invocation left `$LASTEXITCODE = 1`, and the pwsh shell wrapper exits the
+    step with it, so a passing check reported failure. Fixed in commit d288b70
+    by ending the step with `exit 0`, reachable only when the real check passed
+    and the restricted allow list was rejected.
+- [x] Guard green on the fixed workflow: run 36635997154 (commit d288b70) —
+      `Verify portable exe is self-contained` success, `Package portable build`
+      then produced `Typecase-portable-x64.zip` (4.7 MB, exe sha256
+      `3027b9ae4b2b…`), and both uploads succeeded. The exe measured
+      13,394,432 B again — the same size as the rc.2 asset, as expected since
+      no application code changed, with a different hash purely from the PE
+      build timestamp.
 - [ ] The §7 VM pass itself (clean Windows 10 **and** Windows 11 VMs,
       install/uninstall, SmartScreen wording, reboot persistence, the missing
       runtime message, and §8 flows 1–3) is still outstanding — it is what
