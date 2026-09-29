@@ -132,6 +132,13 @@ jobs:
           }
           "Negative test passed: a restricted allow list is rejected (exit $code)"
 
+          # The negative test deliberately left a non-zero last exit code, and
+          # the pwsh shell wrapper exits the step with $LASTEXITCODE — left
+          # alone, a passing step would report failure (run 36635488776). Both
+          # assertions above throw rather than fall through, so this point means
+          # the guard checked the exe and rejected a bad allow list.
+          exit 0
+
       # The package is the verified exe plus a README stating the supported
       # systems, the WebView2 requirement, where data lives and how to verify the
       # download. The wording lives in the repo
