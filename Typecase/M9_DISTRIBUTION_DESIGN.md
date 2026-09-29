@@ -99,5 +99,35 @@ claiming the step.
       network-tier skip on an ordinary push (gate semantics preserved).
 - [x] `typecase-windows-portable` produced alongside installers: 4.86 MB
       staged exe vs 8.42 MB installers artifact.
-- [ ] Release workflow untested until the first `v*` tag (the RC) — recorded
-      here when it runs.
+- [x] Release workflow exercised by the first `v*` tag, `v0.1.0-rc.1`
+      (commit 6dcd87d, annotated tag object 04ede79). Green run 36501073516:
+      the `build` job ran the **full** gate including the network tier on
+      Windows, and the `release` job published
+      https://github.com/DayJHM/typecase/releases/tag/v0.1.0-rc.1
+      with `prerelease: true`, `draft: false` and all four assets —
+      `Typecase_0.1.0_x64-setup.exe` (3,647,545 B),
+      `Typecase_0.1.0_x64_en-US.msi` (5,001,216 B),
+      `Typecase-portable.exe` (13,304,320 B raw exe) and
+      `WINDOWS_VALIDATION.md` (12,013 B). Exactly one release exists for the
+      tag; the `-rc` prerelease rule fired as designed.
+- Two fixes were needed to get the release job green, both recorded here
+      because they are load-bearing, not incidental:
+  - **gh needs the repo named.** The artifact-only `release` job skips
+    checkout (run 36500195139, green `build`, failed `release`):
+    `gh release create` fell back to local git and died with *"fatal: not a
+    git repository"*. Every `gh` call now passes `--repo "$GITHUB_REPOSITORY"`
+    and `--verify-tag` (commit a8cfe85).
+  - **Assets must be files, not directories.** `upload-artifact` preserves
+    the matched paths' common ancestor, so the installer artifact unpacks as
+    `nsis/` and `msi/` subdirectories; the one-level glob matched those
+    directories and gh refused (*"read …/msi: is a directory"*) (run
+    36500636890). The job now flattens every artifact tree into one `assets/`
+    directory before uploading (commit 6dcd87d), and deletes any prior
+    release for the tag first so re-runs and re-pushed tags are idempotent.
+- Note for the record: `--generate-notes` produces only the Full Changelog
+      link, because this repository is push-based — GitHub's notes are built
+      from merged PRs, and there are none. A hand-written note body would
+      read better for a tester landing on the release page.
+- [ ] The §7 VM pass itself (clean Windows VM, install/uninstall, SmartScreen
+      wording, reboot persistence) is still outstanding — it is what gates
+      `v0.1.0`, not the RC.

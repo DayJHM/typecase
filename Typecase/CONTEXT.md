@@ -1411,10 +1411,15 @@ M9  DONE*     Distribution (assessment stage 10): portable + installer +
               §43 acceptance mapping added as WINDOWS_VALIDATION §8; flow-3
               "cache external font" recorded there as an unimplemented
               deviation (§29 cache_external_font; extCacheOffer copy is
-              honest). DONE* pending: the first v* tag exercising
-              release.yml and the §7/§8 VM test pass gating v0.1.0 — the
-              refactor itself is verified (run 36461564474 green,
-              portable artifact 4.86 MB produced).
+              honest). release.yml is now exercised: tag v0.1.0-rc.1
+              (commit 6dcd87d) published release 398720167 with
+              prerelease:true and all four assets (NSIS 3.65 MB, MSI
+              5.00 MB, portable 13.30 MB raw exe, checklist 12 KB) — run
+              36501073516 green, full network tier included (see
+              M9_DISTRIBUTION_DESIGN.md §7; two release-job fixes: gh
+              needs --repo without a checkout, and artifacts must be
+              flattened to files before upload). DONE* pending only the
+              §7/§8 VM test pass gating v0.1.0.
 ```
 
 Windows-only validation (assessment stages 7–8, §38) is performed at M6 and
