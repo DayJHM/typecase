@@ -1408,6 +1408,17 @@ M9  DONE*     Distribution (assessment stage 10): portable + installer +
               design. Release job publishes NSIS+MSI+portable+checklist as
               permanent assets (-rc tags → prerelease). No code signing
               (§7.2 records unsigned) and no auto-updater (§42) by decision.
+              Portable *client* packaging is now deliberate (M9 §2a/§2b): the
+              run publishes both Typecase-portable.exe and
+              Typecase-portable-x64.zip (exe + README stating requirements,
+              data root, install/uninstall semantics and the exe sha256, with
+              the wording kept in Typecase/packaging/); webviewInstallMode is
+              stated in tauri.conf.json (downloadBootstrapper) instead of
+              inherited from a Tauri default; a failed start reports itself
+              in a message box (src/startup.rs) because a release build has no
+              console; baseline recorded as Win10 1809+ / Win11, x64 (ARM64 by
+              emulation). Portable-data mode remains the §35 "later" option —
+              the shared %LOCALAPPDATA%\Typecase root is unchanged.
               §43 acceptance mapping added as WINDOWS_VALIDATION §8. Flow-3's
               "cache external font" deviation was then closed in code: §29
               cache_external_font exists (M7_EXTERNAL_FONTS_DESIGN.md §6) —

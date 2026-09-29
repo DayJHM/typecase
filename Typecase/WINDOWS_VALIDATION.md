@@ -168,17 +168,42 @@ These gate the FontManager milestone; none may be claimed done from Linux.
   fonts.googleapis.com/gstatic (observe in Resource Monitor → Network). §36.
 - [ ] **7.5** File the session: evidence folder zipped next to the release,
   checklist ticked, deviations logged in CONTEXT.md §45.
-- [ ] **7.6 [M9]** Portable exe: download `typecase-windows-portable` from the
-  same run, run `Typecase-portable.exe` directly (no install) on a clean VM →
-  app launches and behaves identically; `%LOCALAPPDATA%\Typecase\` is the data
-  root exactly as for the installed build (shared by design,
-  M9_DISTRIBUTION_DESIGN.md §2); WebView2 requirement holds on 1809+.
-- [ ] **7.7** Sweep the **right build**: `v0.1.0-rc.1`'s binaries predate the
-  external-font cache change (M9_DISTRIBUTION_DESIGN.md §6), so items **6.7**
-  and §8 flow 3 need a build at or after it — tag a later RC for the final
-  sweep, or build locally from `main`
-  (`npm run tauri build -- --bundles nsis,msi`). Record which build the
-  session log belongs to.
+- [ ] **7.6 [M9]** Portable client: the run publishes **two** portable
+  artifacts — the bare `Typecase-portable.exe` and the package
+  `Typecase-portable-x64.zip` (exe + `README.txt`). Run `Typecase-portable.exe`
+  directly (no install) on a clean VM → the app launches and behaves
+  identically; `%LOCALAPPDATA%\Typecase\` is the data root exactly as for the
+  installed build (shared by design, M9_DISTRIBUTION_DESIGN.md §2); the
+  WebView2 requirement holds on 1809+. Unzip the package and check the README
+  against reality: the stated SHA-256 must match
+  `Get-FileHash Typecase-portable.exe -Algorithm SHA256`, and the data-root
+  paths named in it must be the ones the app actually creates.
+- [ ] **7.7** Sweep the **right build**: `v0.1.0-rc.1`'s binaries predate both
+  the external-font cache change (M9_DISTRIBUTION_DESIGN.md §6) and the
+  portable packaging (§2a), so items **6.7**, **7.6**, **7.8** and §8 flow 3
+  need a build at or after them — tag a later RC for the final sweep, or build
+  locally from `main` (`npm run tauri build -- --bundles nsis,msi`). Record
+  which build the session log belongs to.
+- [ ] **7.8 [M9]** Missing-runtime message (the portable exe has no installer
+  to help it): on a VM without the WebView2 runtime (remove *Microsoft Edge
+  WebView2 Runtime* from Settings → Apps, or use a snapshot taken before it
+  was installed), launch the portable exe → a message box names Typecase,
+  states that WebView2 is required, gives the download page, and the process
+  exits non-zero instead of vanishing silently. Capture the dialog. Reinstall
+  the runtime and confirm the app then starts normally. Also try the same on a
+  machine that **has** the runtime: no dialog must appear (the check is not a
+  pre-flight probe; it speaks only after a real failure).
+- [ ] **7.9 [M9]** Portable means runnable in place: run the exe from a
+  location it cannot write to (mounted ISO, read-only share, write-protected
+  USB). It must start and work, writing only to `%LOCALAPPDATA%\Typecase\` —
+  nothing is ever written beside the exe. This is the property the package
+  README claims; a failure here is a documentation bug, not a feature gap.
+- [ ] **7.10 [M9]** **Both OSes, one log each.** Repeat the release sweep on
+  **Windows 10 (1809 or later)** and on **Windows 11**, and file a separate
+  session log per OS. "Compatible with Windows 10 and Windows 11" is a claim,
+  not a result, until both are recorded — the two differ in real places
+  (per-user font registration, WebView2 provisioning, UxTheme title-bar
+  behavior, and the `RegQueryValueExW` out-parameter type fixed in M7).
 
 ---
 
@@ -186,10 +211,12 @@ These gate the FontManager milestone; none may be claimed done from Linux.
 
 ```text
 Windows validation <date> — <Windows edition/version> — build <artifact id>
-Items passed: 1.1–1.4, 2.1–2.6, 3.1–3.3, 4.1–4.5, 5.1–5.8, 6.1–6.7, 7.1–7.7
+Items passed: 1.1–1.4, 2.1–2.6, 3.1–3.3, 4.1–4.5, 5.1–5.8, 6.1–6.7, 7.1–7.10
 Items deferred (feature not yet implemented): none (see deviations)
 Deviations: <none or list>
 Evidence: typecase-evidence-<date>.zip
+Note: file one log per OS (7.10) — Windows 10 and Windows 11 are recorded
+separately.
 ```
 
 ---
@@ -226,6 +253,6 @@ warning is confirmed (§25 step 3), stores a validated copy under
 disk and the row badge as its evidence; the deviation recorded in earlier
 revisions of this file is closed by M7_EXTERNAL_FONTS_DESIGN.md §6.
 
-Release-candidate gate: **7.1–7.7** on a clean snapshot **plus flows 1–3**
+Release-candidate gate: **7.1–7.10** on a clean snapshot **plus flows 1–3**
 above constitute the stage-10 test pass; the permanent release assets live
 on the `v*` tag's GitHub release, not in aging run artifacts.

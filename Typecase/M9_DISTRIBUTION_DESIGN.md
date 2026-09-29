@@ -13,9 +13,7 @@ acceptance mapping that turns the VM session into the recorded test pass.
 - Per-user install default (NSIS `installMode: currentUser` is Tauri's
   default; §23/§41 fixed decisions), silent MSI path (§1.1 checklist).
 - WINDOWS_VALIDATION.md §1/§7 cover install, uninstall, SmartScreen,
-  signature status (unsigned for now).
-
-## 2. Portable build
+  signature status (unsigned for now).## 2. Portable build
 
 Tauri 2 has no dedicated "portable" bundle target on Windows; the portable
 artifact **is the raw release exe** (`target/release/<name>.exe`). Decisions:
@@ -28,9 +26,73 @@ artifact **is the raw release exe** (`target/release/<name>.exe`). Decisions:
   runtime, so the single exe runs unmodified on supported targets.
 - CI stages it as `Typecase-portable.exe` (deterministic pick:
   `target/release/typecase.exe`, with a largest-root-exe fallback that
-  excludes uninstaller-style names) and uploads artifact
+excludes uninstaller-style names) and uploads artifact
   `typecase-windows-portable`. Version lives in the release/tag, not the
   filename, so the staging step never needs a version bump.
+
+### 2a. Portable *client* packaging (deliberate, not incidental)
+
+The requirement is both a conventional installer and a portable client with a
+fully Windows-compatible experience, so the portable build is shipped as a
+documented package rather than a bare binary:
+
+```text
+Typecase-portable-x64.zip
+├── Typecase-portable.exe
+└── README.txt   (version, Win10 1809+/Win11 x64, WebView2, data root,
+                  install/uninstall semantics, exe SHA-256, build revision)
+```
+
+- The README wording lives in the repository
+  (`Typecase/packaging/portable-README.txt`) and CI substitutes the version,
+  the revision and the exe's SHA-256 into it — reviewable and diffable instead
+  of buried in a workflow. (It cannot be an inline PowerShell here-string: a
+  YAML block scalar cannot contain a column-0 terminator.)
+- The bare `Typecase-portable.exe` **stays a release asset** as well: it is
+  what checklist 7.6 exercises and what a user who wants one file grabs. The
+  duplication (~13 MB per release) is deliberate and recorded.
+- No version in either filename (the decision above).
+
+### 2b. Windows compatibility baseline
+
+| | Windows 10 1809+ | Windows 11 |
+| --- | --- | --- |
+| Architecture | x64 | x64 (ARM64 via x64 emulation) |
+| WebView2 runtime | part of the OS (Win10 April 2018+); installer fetches it if absent | part of the OS |
+| Installers (NSIS/MSI) | supported | supported |
+| Portable exe | supported | supported |
+
+- `bundle.windows.webviewInstallMode` is now stated **explicitly** as
+  `downloadBootstrapper` in tauri.conf.json (0 MB extra). It was previously
+  left to Tauri's default, which a future Tauri release could change under us
+  without any signal in this repository. The installers therefore download and
+  run the WebView2 bootstrapper when the runtime is missing.
+  `embedBootstrapper` (+~1.8 MB, still needs the network) and `offlineInstaller`
+  (+~127 MB, works offline) are recorded as the escape hatches if a VM image
+  turns out to lack the runtime — deliberately not adopted now (§42).
+- Native ARM64 and 32-bit x86 are **not** built (Tauri compiles for the host;
+  `windows-latest` is x64). ARM64 Windows 11 runs the x64 build under
+  emulation, so compatibility is preserved without a second toolchain.
+- **The portable exe is genuinely single-file**, which the packaging relies on:
+  `webview2-com-sys 0.39.1` links the loader statically for MSVC targets
+  (`link(name = "WebView2LoaderStatic", kind = "static")` under
+  `target_env = "msvc"`, the only Windows environment Tauri supports), the
+  frontend is embedded in the binary, the catalog falls back to an embedded
+  snapshot, and `tauri.conf.json` declares no `resources`/`externalBin`. So no
+  DLL ships beside the exe — the machine-level dependency is the WebView2
+  *runtime*, nothing else.
+- **A failed start now says so.** `typecase_lib::run()` returns its error
+  instead of panicking, and `src/startup.rs` turns it into an actionable
+  message (naming the WebView2 runtime as the likely cause, with the download
+  page) shown in a native `MessageBoxW` — necessary because a release build
+  has `windows_subsystem = "windows"`, i.e. no console to print to. There is
+  deliberately **no pre-flight runtime probe**: only a real startup failure
+  speaks, so a machine whose probe would have been wrong is never told it is
+  broken. Elevated helper children return before this path (§23).
+- Still the recorded **later** option (§35: "a portable executable does not
+  imply portable data"): a data-beside-the-exe mode. The shared
+  `%LOCALAPPDATA%\Typecase\` root is unchanged, and the package README states
+  it plainly so nobody discovers it by surprise.
 
 ## 3. Workflow topology (drift-proofing the build)
 

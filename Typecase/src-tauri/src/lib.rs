@@ -6,12 +6,18 @@ pub mod exports;
 pub mod externalfonts;
 pub mod fontmanager;
 pub mod library;
+/// §35: reporting a startup failure in a way the user can act on (the
+/// portable build has no installer to fall back on).
+pub mod startup;
 
 use tauri::Manager;
 
+/// Start the UI. Returns the error rather than panicking, so `main` can show
+/// the user what happened instead of a silent exit — the portable exe is the
+/// case that matters (no installer, no console).
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    tauri::Builder::default()
+pub fn run() -> Result<(), String> {
+    let app = tauri::Builder::default()
         // M5: serve cached font files (fonts/<id>/<sha8>.ttf) to the webview.
         // Strict path validation lives in downloads::serve_font_file (§31);
         // this handler is a thin adapter over it.
@@ -57,8 +63,13 @@ pub fn run() {
             ping,
             app_version,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .map_err(|e| format!("cannot create the application window: {e}"))?;
+    // The window and its webview are created by `build`, so a missing or
+    // broken WebView2 runtime surfaces above; once the loop starts, Tauri owns
+    // error handling (its `run` is infallible).
+    app.run(|_, _| {});
+    Ok(())
 }
 
 /// Scaffold IPC health check.
